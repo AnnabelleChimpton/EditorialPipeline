@@ -1,5 +1,0 @@
-{"id":"proj-001","topic":"Example topic","verdict":"strong","sources":4,"card":"REFERENCE/cards/proj-001-example-topic.md","timestamp":"2026-01-01T00:00:00Z"}
-{"id":"proj-001","topic":"Example topic","verdict":"strong","sources":4,"card":"REFERENCE/cards/proj-001-example-topic.md","timestamp":"2026-01-01T00:00:00Z","type":"deepdive","dossier":"REFERENCE/dossiers/proj-001-example-topic.md"}
-{"id":"proj-001","topic":"Example topic","type":"brief","brief":"REFERENCE/briefs/proj-001-example-topic.md"}
-{"id":"proj-001","topic":"Example topic","type":"draft","draft":"REFERENCE/drafts/proj-001-example-topic.md"}
-{"id":"proj-001","topic":"Example topic","type":"qa","qa":"REFERENCE/qa/proj-001-example-topic.md","qaStatus":"approved"}

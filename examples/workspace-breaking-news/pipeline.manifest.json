@@ -1,0 +1,15 @@
+{
+  "name": "Breaking News",
+  "titleField": "event",
+  "priority": {
+    "field": "urgency",
+    "label": "Urgency",
+    "sortOrder": ["critical", "high", "standard"],
+    "colors": { "critical": "red", "high": "amber", "standard": "stone" }
+  },
+  "metadata": [
+    { "field": "confidence", "label": "Confidence", "filterable": true, "badge": true, "colors": { "confirmed": "emerald", "developing": "amber", "unverified": "red" } },
+    { "field": "zone", "label": "Zone", "filterable": true },
+    { "field": "eventDate", "label": "Event Date" }
+  ]
+}

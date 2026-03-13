@@ -1,0 +1,16 @@
+{
+  "name": "My Pipeline",
+  "titleField": "topic",
+  "subtitleField": "hook",
+  "priority": {
+    "field": "priority",
+    "label": "Priority",
+    "sortOrder": ["high", "medium", "low"],
+    "colors": { "high": "red", "medium": "amber", "low": "stone" }
+  },
+  "metadata": [
+    { "field": "era", "label": "Era", "filterable": true },
+    { "field": "category", "label": "Category", "filterable": true },
+    { "field": "sourceability", "label": "Sources", "badge": true, "colors": { "high": "emerald", "medium": "amber", "low": "stone" } }
+  ]
+}

@@ -1,6 +1,7 @@
 import fs from "fs";
 import path from "path";
 import { REFERENCE_DIR } from "./paths";
+import { getManifest, type FilterGroup } from "./manifest";
 
 export type Stage =
   | "queued"
@@ -12,19 +13,14 @@ export type Stage =
   | "revision"
   | "done";
 
-export interface Topic {
+export interface PipelineItem {
   id: string;
   title: string;
   currentStage: Stage;
   qaStatus?: "approved" | "needs-edits";
   revisionRound?: number;
   revisionStatus?: string;
-  hook?: string;
-  era?: string;
-  category?: string;
-  priority?: string;
-  sourceability?: string;
-  status?: string;
+  artifactTimestamps?: Record<string, string>;
   artifacts: {
     card?: string;
     dossier?: string;
@@ -33,11 +29,15 @@ export interface Topic {
     qa?: string;
     revision?: string;
   };
+  /** All domain-specific metadata from queue + index, keyed by original field name */
+  meta: Record<string, unknown>;
 }
+
+/** @deprecated Use PipelineItem instead */
+export type Topic = PipelineItem;
 
 interface IndexEntry {
   id: string;
-  topic: string;
   type?: string;
   card?: string;
   dossier?: string;
@@ -47,17 +47,12 @@ interface IndexEntry {
   qaStatus?: "approved" | "needs-edits";
   revisionRound?: number;
   revisionStatus?: string;
+  timestamp?: string;
   [key: string]: unknown;
 }
 
 interface QueueEntry {
   id: string;
-  topic: string;
-  hook?: string;
-  category?: string;
-  era?: string;
-  priority?: string;
-  sourceability?: string;
   status?: string;
   [key: string]: unknown;
 }
@@ -75,60 +70,45 @@ function resolveStage(entries: IndexEntry[]): {
   qaStatus?: "approved" | "needs-edits";
   revisionRound?: number;
   revisionStatus?: string;
-  artifacts: Topic["artifacts"];
+  artifacts: PipelineItem["artifacts"];
+  artifactTimestamps: Record<string, string>;
 } {
-  const artifacts: Topic["artifacts"] = {};
-  let stage: Stage = "card";
+  const artifacts: PipelineItem["artifacts"] = {};
+  const artifactTimestamps: Record<string, string> = {};
   let qaStatus: "approved" | "needs-edits" | undefined;
   let revisionRound: number | undefined;
   let revisionStatus: string | undefined;
-  let lastQaApproved = false;
-  let hasRevisionAfterQaFail = false;
 
   for (const entry of entries) {
     const type = entry.type;
+    const ts = entry.timestamp;
 
     if (!type) {
-      // Card entry
       if (entry.card) artifacts.card = entry.card;
-      stage = "card";
+      if (ts) artifactTimestamps["card"] = ts;
     } else if (type === "deepdive") {
       if (entry.dossier) artifacts.dossier = entry.dossier;
-      stage = "dossier";
+      if (ts) artifactTimestamps["dossier"] = ts;
     } else if (type === "brief") {
       if (entry.brief) artifacts.brief = entry.brief;
-      stage = "brief";
+      if (ts) artifactTimestamps["brief"] = ts;
     } else if (type === "draft") {
       if (entry.draft) artifacts.draft = entry.draft;
-      stage = "draft";
+      if (ts) artifactTimestamps["draft"] = ts;
     } else if (type === "qa") {
       if (entry.qa) artifacts.qa = entry.qa;
+      if (ts) artifactTimestamps["qa"] = ts;
       qaStatus = entry.qaStatus;
-      if (entry.qaStatus === "approved") {
-        lastQaApproved = true;
-        stage = "done";
-      } else {
-        lastQaApproved = false;
-        stage = "qa-failed";
-      }
     } else if (type === "revision") {
       if (entry.draft) artifacts.revision = entry.draft;
+      if (ts) artifactTimestamps["revision"] = ts;
       revisionRound = entry.revisionRound;
       revisionStatus = entry.revisionStatus as string | undefined;
-      hasRevisionAfterQaFail = true;
-      stage = "revision";
     }
   }
 
-  // Final resolution: if last QA was approved, it's done
-  // The loop already handles ordering since entries are append-only
-  if (lastQaApproved && !hasRevisionAfterQaFail) {
-    // Actually we need to check: the last qa entry, not just any
-  }
-
-  // Re-derive from the last relevant events
   // Walk backwards to find final state
-  let finalStage = stage;
+  let finalStage: Stage = "card";
   for (let i = entries.length - 1; i >= 0; i--) {
     const e = entries[i];
     if (e.type === "qa" && e.qaStatus === "approved") {
@@ -159,10 +139,11 @@ function resolveStage(entries: IndexEntry[]): {
     }
   }
 
-  return { stage: finalStage, qaStatus, revisionRound, revisionStatus, artifacts };
+  return { stage: finalStage, qaStatus, revisionRound, revisionStatus, artifacts, artifactTimestamps };
 }
 
-export function getTopics(): Topic[] {
+export function getTopics(): PipelineItem[] {
+  const manifest = getManifest();
   const indexPath = path.join(REFERENCE_DIR, "dossier-index.jsonl");
   const queuePath = path.join(REFERENCE_DIR, "topic-queue.jsonl");
 
@@ -177,64 +158,62 @@ export function getTopics(): Topic[] {
     grouped.set(entry.id, list);
   }
 
-  // Build topic map from index
-  const topicMap = new Map<string, Topic>();
+  // Build item map from index
+  const itemMap = new Map<string, PipelineItem>();
   for (const [id, entries] of grouped) {
     const first = entries[0];
-    const { stage, qaStatus, revisionRound, revisionStatus, artifacts } = resolveStage(entries);
-    topicMap.set(id, {
+    const { stage, qaStatus, revisionRound, revisionStatus, artifacts, artifactTimestamps } = resolveStage(entries);
+    itemMap.set(id, {
       id,
-      title: first.topic,
+      title: (first[manifest.titleField] as string) || id,
       currentStage: stage,
       qaStatus,
       revisionRound,
       revisionStatus,
       artifacts,
+      artifactTimestamps,
+      meta: {},
     });
   }
 
   // Merge queue metadata
+  const reservedKeys = new Set(["id", "status", manifest.titleField]);
   for (const q of queueEntries) {
-    const existing = topicMap.get(q.id);
+    const existing = itemMap.get(q.id);
     if (existing) {
-      existing.hook = q.hook;
-      existing.era = q.era;
-      existing.category = q.category;
-      existing.priority = q.priority;
-      existing.sourceability = q.sourceability;
-      existing.status = q.status;
+      for (const [key, val] of Object.entries(q)) {
+        if (!reservedKeys.has(key) && val !== undefined) {
+          existing.meta[key] = val;
+        }
+      }
     } else if (q.status === "queued") {
-      topicMap.set(q.id, {
+      const meta: Record<string, unknown> = {};
+      for (const [key, val] of Object.entries(q)) {
+        if (!reservedKeys.has(key) && val !== undefined) {
+          meta[key] = val;
+        }
+      }
+      itemMap.set(q.id, {
         id: q.id,
-        title: q.topic,
+        title: (q[manifest.titleField] as string) || q.id,
         currentStage: "queued",
-        hook: q.hook,
-        era: q.era,
-        category: q.category,
-        priority: q.priority,
-        sourceability: q.sourceability,
-        status: q.status,
+        meta,
         artifacts: {},
       });
     }
   }
 
-  return Array.from(topicMap.values());
+  return Array.from(itemMap.values());
 }
 
-export function getTopicById(id: string): Topic | null {
+export function getTopicById(id: string): PipelineItem | null {
   const topics = getTopics();
   const topic = topics.find((t) => t.id === id);
   if (!topic) return null;
 
-  // Read artifact content from disk
   const readArtifact = (relativePath: string | undefined): string | undefined => {
     if (!relativePath) return undefined;
-    const fullPath = path.join(
-      REFERENCE_DIR,
-      "..",
-      relativePath
-    );
+    const fullPath = path.join(REFERENCE_DIR, "..", relativePath);
     try {
       return fs.readFileSync(fullPath, "utf-8");
     } catch {
@@ -254,20 +233,148 @@ export function getTopicById(id: string): Topic | null {
   return topic;
 }
 
-export function getQueueEntries(): QueueEntry[] {
-  const queuePath = path.join(REFERENCE_DIR, "topic-queue.jsonl");
-  const entries = parseJSONL<QueueEntry>(queuePath);
-  // Sort by priority: high > medium > low
-  const priorityOrder: Record<string, number> = { high: 0, medium: 1, low: 2 };
-  return entries.sort(
-    (a, b) =>
-      (priorityOrder[a.priority || "low"] ?? 3) -
-      (priorityOrder[b.priority || "low"] ?? 3)
-  );
-}
-
 export function getIndexLastModified(): Date {
   const indexPath = path.join(REFERENCE_DIR, "dossier-index.jsonl");
   const stat = fs.statSync(indexPath);
   return stat.mtime;
+}
+
+export interface TopicStats {
+  total: number;
+  queued: number;
+  inProgress: number;
+  qaFailed: number;
+  revision: number;
+  done: number;
+}
+
+export function getTopicStats(): TopicStats {
+  const topics = getTopics();
+  const inProgressStages: Stage[] = ["card", "dossier", "brief", "draft"];
+  return {
+    total: topics.length,
+    queued: topics.filter((t) => t.currentStage === "queued").length,
+    inProgress: topics.filter((t) => inProgressStages.includes(t.currentStage)).length,
+    qaFailed: topics.filter((t) => t.currentStage === "qa-failed").length,
+    revision: topics.filter((t) => t.currentStage === "revision").length,
+    done: topics.filter((t) => t.currentStage === "done").length,
+  };
+}
+
+export interface ActivityEntry {
+  id: string;
+  topic: string;
+  type: string;
+  label: string;
+}
+
+const activityLabels: Record<string, string> = {
+  card: "Topic created",
+  deepdive: "Research complete",
+  brief: "Brief ready",
+  draft: "Draft ready",
+  qa: "Editor review complete",
+  revision: "Revision submitted",
+};
+
+export function getRecentActivity(count = 10): ActivityEntry[] {
+  const manifest = getManifest();
+  const indexPath = path.join(REFERENCE_DIR, "dossier-index.jsonl");
+  const entries = parseJSONL<IndexEntry>(indexPath);
+  return entries.slice(-count).reverse().map((e) => {
+    const type = e.type || "card";
+    let label = activityLabels[type] || type;
+    if (type === "qa" && e.qaStatus === "approved") label = "Approved for publish";
+    if (type === "qa" && e.qaStatus === "needs-edits") label = "Flagged for revision";
+    return { id: e.id, topic: (e[manifest.titleField] as string) || e.id, type, label };
+  });
+}
+
+export interface StageDistribution {
+  stage: Stage;
+  count: number;
+  priorities: Record<string, number>;
+}
+
+export function getStageDistribution(): StageDistribution[] {
+  const manifest = getManifest();
+  const topics = getTopics();
+  const allStages: Stage[] = ["queued", "card", "dossier", "brief", "draft", "qa-failed", "revision", "done"];
+  return allStages.map((stage) => {
+    const matching = topics.filter((t) => t.currentStage === stage);
+    const priorities: Record<string, number> = {};
+    for (const t of matching) {
+      const p = (t.meta[manifest.priority.field] as string) || "unset";
+      priorities[p] = (priorities[p] || 0) + 1;
+    }
+    return { stage, count: matching.length, priorities };
+  });
+}
+
+export function getFilterGroups(items: PipelineItem[]): FilterGroup[] {
+  const manifest = getManifest();
+  const groups: FilterGroup[] = [];
+
+  // Priority field
+  const priorityValues = new Set<string>();
+  for (const item of items) {
+    const v = item.meta[manifest.priority.field] as string | undefined;
+    if (v) priorityValues.add(v);
+  }
+  if (priorityValues.size > 0) {
+    groups.push({
+      field: manifest.priority.field,
+      label: manifest.priority.label,
+      values: manifest.priority.sortOrder.filter((v) => priorityValues.has(v)),
+    });
+  }
+
+  // Filterable metadata fields
+  for (const mf of manifest.metadata) {
+    if (!mf.filterable) continue;
+    const values = new Set<string>();
+    for (const item of items) {
+      const v = item.meta[mf.field] as string | undefined;
+      if (v) values.add(v);
+    }
+    if (values.size > 0) {
+      groups.push({ field: mf.field, label: mf.label, values: Array.from(values).sort() });
+    }
+  }
+
+  return groups;
+}
+
+export function getPriorityWeight(item: PipelineItem): number {
+  const manifest = getManifest();
+  const val = item.meta[manifest.priority.field] as string | undefined;
+  if (!val) return manifest.priority.sortOrder.length;
+  const idx = manifest.priority.sortOrder.indexOf(val);
+  return idx === -1 ? manifest.priority.sortOrder.length : idx;
+}
+
+export function getReadyTopics(): PipelineItem[] {
+  const topics = getTopics().filter((t) => t.currentStage === "done");
+  return topics.map((topic) => {
+    const readArtifact = (relativePath: string | undefined): string | undefined => {
+      if (!relativePath) return undefined;
+      const fullPath = path.join(REFERENCE_DIR, "..", relativePath);
+      try {
+        return fs.readFileSync(fullPath, "utf-8");
+      } catch {
+        return undefined;
+      }
+    };
+    return {
+      ...topic,
+      artifacts: {
+        card: readArtifact(topic.artifacts.card),
+        dossier: readArtifact(topic.artifacts.dossier),
+        brief: readArtifact(topic.artifacts.brief),
+        draft: readArtifact(topic.artifacts.draft),
+        qa: readArtifact(topic.artifacts.qa),
+        revision: readArtifact(topic.artifacts.revision),
+      },
+    };
+  });
 }

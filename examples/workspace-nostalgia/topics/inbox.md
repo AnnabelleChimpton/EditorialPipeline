@@ -1,0 +1,44 @@
+# Vodka Cranberry Era — Topic Inbox
+
+## Queued (JSONL-sourced)
+- [x] vce-001 · MySpace profile culture and the tyranny of the Top 8
+- [x] vce-002 · AIM away messages as performance art
+- [x] vce-003 · LiveJournal oversharing, fandom, and locked-post politics
+- [x] vce-004 · Perez Hilton and the blog-era celebrity snark economy
+- [x] vce-005 · The rise and fall of Juicy Couture tracksuit civilization
+- [x] vce-006 · Yahoo Answers as the internet's great hall of sincere questions and magnificent nonsense
+- [x] vce-007 · Quizilla and the personality-quiz industrial complex
+- [x] vce-008 · Neopets guild economies and virtual pet capitalism
+- [x] vce-009 · GeoCities neighborhood culture and the hand-coded homepage era
+- [x] vce-010 · Web rings and internet discovery before Google
+- [x] vce-011 · Napster, Limewire, and the moral panic of music piracy
+- [x] vce-012 · SmarterChild and the proto-chatbot era on AIM
+- [x] vce-013 · Xanga and the teenage blog-diary boom
+- [x] vce-014 · DeviantArt and the online art community hierarchy
+- [x] vce-015 · Homestar Runner and the Flash animation golden age
+- [x] vce-016 · Away message emo lyrics and the passive-aggressive subtweet before Twitter
+- [x] vce-017 · The Sims and the suburban fantasy sandbox
+- [x] vce-018 · Chain emails, surveys, and the forward-this-to-10-people social contract
+- [ ] vce-019 · FanFiction.Net disclaimers, flame wars, and the Mary Sue tribunal
+- [x] vce-020 · Facebook pokes, wall posts, and the etiquette of low-stakes social contact
+- [x] vce-021 · Early YouTube before the algorithm: reply videos, five-star ratings, and chaotic amateur celebrity
+- [ ] vce-022 · LOLcats, Failblog, and the meme-network empire of I Can Has Cheezburger?
+- [x] vce-023 · Hot Topic’s transformation from goth outpost to fandom mall empire
+- [ ] vce-024 · The Delia’s catalog as remote-control teen status and fashion fantasy
+- [x] vce-025 · Pop-up ads as the original internet attention war
+- [x] vce-026 · Jamster, Crazy Frog, and the ringtone commercial apocalypse
+- [ ] vce-027 · The celebrity milk-mustache ad as peak aspirational PSA-core
+- [x] vce-028 · TRL as after-school appointment TV and pop-chart warfare
+- [ ] vce-029 · Columbia House and BMG as the penny-CD scam that taught a generation subscription fine print
+- [ ] vce-030 · Passing notes in class as pre-texting logistics, flirtation, and risk management
+- [ ] vce-031 · Dorm room poster culture as a prefab personality kit for young adulthood
+- [ ] vce-032 · Three-way calling, call waiting, and the landline mechanics of betrayal
+- [ ] vce-033 · Lunchables as edible independence and lunchroom status theater
+- [ ] vce-034 · Dunkaroos and the lunchbox dessert arms race
+- [ ] vce-035 · DARE assemblies, drug-ed theater, and the weird pageantry of school moral instruction
+- [ ] vce-036 · Grand Theft Auto as the all-purpose villain in video-game moral panic
+- [ ] vce-037 · The Marilyn Manson blame cycle after Columbine and the soundtrack scapegoat era
+- [ ] vce-038 · AOL trial CDs as junk-mail infrastructure and the weirdly physical gateway to the internet
+- [ ] vce-039 · CD binders in the car as mobile identity archive and petty-theft magnet
+- [ ] vce-040 · DVD commentary tracks and bonus features as a lost school for obsessive media literacy
+- [ ] vce-041 · Lava lamps, bead curtains, and blacklight bedrooms as prefab teen self-expression
