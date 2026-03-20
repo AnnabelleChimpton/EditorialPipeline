@@ -1,4 +1,5 @@
 import { getReadyTopics } from "@/lib/data";
+import { getManifest } from "@/lib/manifest";
 import { ReadyTopicRow } from "@/components/ready-topic-row";
 import { EmptyState } from "@/components/empty-state";
 
@@ -6,6 +7,7 @@ export const dynamic = "force-dynamic";
 
 export default function ReadyPage() {
   const topics = getReadyTopics();
+  const manifest = getManifest();
 
   return (
     <div>
@@ -35,7 +37,7 @@ export default function ReadyPage() {
       ) : (
         <div className="flex flex-col gap-3">
           {topics.map((topic) => (
-            <ReadyTopicRow key={topic.id} topic={topic} />
+            <ReadyTopicRow key={topic.id} topic={topic} manifest={manifest} />
           ))}
         </div>
       )}

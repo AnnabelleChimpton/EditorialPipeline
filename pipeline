@@ -1,0 +1,867 @@
+#!/usr/bin/env python3
+"""Config-driven multi-brand pipeline CLI.
+
+Usage:
+    pipeline init <brand.yaml> [--dry-run]
+    pipeline sync <brand-slug>
+    pipeline list
+"""
+
+import argparse
+import json
+import os
+import re
+import shutil
+import subprocess
+import sys
+from pathlib import Path
+
+try:
+    import yaml
+except ImportError:
+    print("ERROR: PyYAML is required. Install with: pip install pyyaml", file=sys.stderr)
+    sys.exit(1)
+
+OPENCLAW_DIR = Path.home() / ".openclaw"
+REPO_ROOT = Path(__file__).resolve().parent
+CORE_DIR = REPO_ROOT / "core"
+TEMPLATE_DIR = CORE_DIR / "templates"
+STATIC_DIR = CORE_DIR / "static"
+BRANDS_DIR = REPO_ROOT / "brands"
+
+
+# --- Config validation ---
+
+REQUIRED_FIELDS = [
+    "brand.name", "brand.slug", "brand.id_prefix",
+    "voice.personality",
+    "domain.zones",
+    "slop.hard_fail",
+    "schedule.card", "schedule.pre_compute", "schedule.commit",
+    "delivery.channel", "delivery.to",
+    "agent.model", "agent.agent_id",
+]
+
+
+def get_nested(d, path):
+    """Get a nested dict value by dot-separated path."""
+    keys = path.split(".")
+    for k in keys:
+        if not isinstance(d, dict) or k not in d:
+            return None
+        d = d[k]
+    return d
+
+
+def validate_config(config):
+    """Validate brand config. Returns list of error strings."""
+    errors = []
+    for field in REQUIRED_FIELDS:
+        val = get_nested(config, field)
+        if val is None:
+            errors.append(f"Missing required field: {field}")
+
+    # Validate zone slugs
+    zones = get_nested(config, "domain.zones") or []
+    for i, z in enumerate(zones):
+        if "slug" not in z:
+            errors.append(f"domain.zones[{i}] missing 'slug'")
+        if "name" not in z:
+            errors.append(f"domain.zones[{i}] missing 'name'")
+
+    # Validate slop patterns compile
+    for section in ("hard_fail", "warn"):
+        patterns = get_nested(config, f"slop.{section}") or []
+        for i, p in enumerate(patterns):
+            if "pattern" not in p:
+                errors.append(f"slop.{section}[{i}] missing 'pattern'")
+                continue
+            try:
+                re.compile(p["pattern"])
+            except re.error as e:
+                errors.append(f"slop.{section}[{i}] invalid regex: {e}")
+
+    return errors
+
+
+# --- Template rendering ---
+
+def render_list(items, prefix="- "):
+    """Render a list of strings as markdown bullet points."""
+    return "\n".join(f"{prefix}{item}" for item in items)
+
+
+def render_zones(zones):
+    """Render zone list for domain-zones.md."""
+    parts = []
+    for i, z in enumerate(zones, 1):
+        section = f"## {i}. `{z['slug']}` — {z['name']}\n\n"
+        section += z.get("description", "") + "\n"
+        examples = z.get("examples", [])
+        if examples:
+            section += "\n**Example angles:**\n"
+            section += render_list(examples)
+        parts.append(section)
+    return "\n---\n\n".join(parts)
+
+
+def render_platform_guidelines(platforms):
+    """Render platform guidelines for brand-config.md."""
+    parts = []
+    for name, cfg in platforms.items():
+        section = f"### {name.title()}\n"
+        section += f"- {cfg.get('tone', '')}\n"
+        if "length" in cfg:
+            section += f"- Can be longer ({cfg['length']})\n" if name == "linkedin" else f"- {cfg['length']}\n"
+        for note in cfg.get("notes", []):
+            section += f"- {note}\n"
+        parts.append(section)
+    return "\n".join(parts)
+
+
+def render_domain_cliches(config):
+    """Render domain-specific cliches from donts list."""
+    donts = get_nested(config, "voice.donts") or []
+    # Select the ones that look like domain cliches
+    cliches = []
+    for d in donts:
+        cliches.append(f'- {d}')
+    return "\n".join(cliches[:10])  # Top 10
+
+
+def render_domain_voice_traps(config):
+    """Render domain-specific voice traps for post-draft-rubric."""
+    donts = get_nested(config, "voice.donts") or []
+    traps = get_nested(config, "slop.domain_traps") or []
+    lines = []
+    for d in donts[:10]:
+        lines.append(f"- Use {d} unironically" if not d.startswith('"') else f"- Use {d}")
+    for t in traps:
+        lines.append(f"- Say {t}")
+    # Add standard tech commentary voice traps
+    lines.extend([
+        '- Use LinkedIn-bro cadence (short sentence. Paragraph break. Another short sentence. Repeat.)',
+        '- Stack buzzwords ("AI-powered innovation in the cloud ecosystem")',
+    ])
+    return "\n".join(lines)
+
+
+def render_domain_brief_traps(config):
+    """Render domain-specific brief traps."""
+    name = get_nested(config, "brand.name")
+    return (
+        f'- Angle is just "Company X did a bad thing" — needs a pattern or thesis beyond the single incident\n'
+        f'- Hook opens with "In a move that surprised no one..." or "It was only a matter of time..." — lazy framing\n'
+        f'- Brief recommends LinkedIn for every topic — match platform to material, not default\n'
+        f'- Brief recommends thread, carousel, or any non-blog format — this brand publishes blog posts only'
+    )
+
+
+def render_domain_qa_cliches(config):
+    """Render domain-specific QA cliches."""
+    traps = get_nested(config, "slop.domain_traps") or []
+    lines = []
+    for t in traps:
+        lines.append(f"  - {t}")
+    return "\n".join(lines) if lines else "  - (see brand-config.md for domain-specific patterns)"
+
+
+def render_hard_fail_summary(config):
+    """Render hard fail pattern summary for QA rubric."""
+    patterns = get_nested(config, "slop.hard_fail") or []
+    # Group by category
+    lines = []
+    for p in patterns:
+        lines.append(f'- {p["name"]}')
+    return "\n".join(lines)
+
+
+def render_queue_field_rules(config):
+    """Render queue field rules for AGENTS.md."""
+    zones = get_nested(config, "domain.zones") or []
+    zone_slugs = [z["slug"] for z in zones]
+    fields = get_nested(config, "pipeline.queue_fields") or []
+
+    lines = []
+    for f in fields:
+        name = f["name"]
+        if f.get("values_from") == "domain.zones":
+            lines.append(f'- **`{name}`**: Must be one of the {len(zone_slugs)} slugs from `REFERENCE/domain-zones.md` — pick the single best match:')
+            lines.append(f'  `{"`, `".join(zone_slugs)}`')
+        elif "values" in f:
+            vals = f["values"]
+            lines.append(f'- **`{name}`**: One of: {", ".join(f"`{v}`" for v in vals)}')
+    return "\n".join(lines)
+
+
+def render_queue_fields_list(config):
+    """Render the list of queue fields for sourcing instructions."""
+    return '`id`, `topic`, `hook`, `category`, `zone`, `heat`, `topicType`, `priority`, `sourceability`, `status` `"queued"`, `notes`, `dossier` `null`'
+
+
+def render_research_targets(config):
+    """Render research target priorities for deep-dive rubric."""
+    research = config.get("research", {})
+    targets = research.get("targets", [])
+    if targets:
+        return render_list(targets)
+    # Default fallback
+    return render_list([
+        "Primary documents (SEC filings, court rulings, FTC complaints, official company announcements)",
+        "Technical analysis (source code, architecture discussions, benchmark data)",
+        "Specific people or incidents mentioned in the card's Upgrade path or Open question sections",
+        "Developer forum posts, HN threads, Reddit discussions with firsthand accounts",
+        "Pull-quotable material from participants, critics, or contemporary observers",
+    ])
+
+
+def render_deepdive_acceptance_extra(config):
+    """Render extra acceptance bar items for deep-dive rubric."""
+    research = config.get("research", {})
+    extra = research.get("acceptance_extra", [])
+    if extra:
+        return "\n".join(f"- {item}" for item in extra)
+    return ""
+
+
+def render_deepdive_beyond_extra(config):
+    """Render extra 'goes beyond' items for deep-dive rubric."""
+    research = config.get("research", {})
+    extra = research.get("beyond_extra", [])
+    if extra:
+        return "\n".join(f"- {item}" for item in extra)
+    return ""
+
+
+def build_template_vars(config):
+    """Build the variable dict for template rendering."""
+    brand = config.get("brand", {})
+    voice = config.get("voice", {})
+    domain = config.get("domain", {})
+    pipeline = config.get("pipeline", {})
+    zones = domain.get("zones", [])
+
+    gate_values = pipeline.get("gate_values", ["strong"])
+    revision_cap = pipeline.get("revision_cap", 2)
+
+    return {
+        "brand_name": brand.get("name", ""),
+        "brand_slug": brand.get("slug", ""),
+        "brand_domain": brand.get("name", "").lower(),
+        "id_prefix": brand.get("id_prefix", ""),
+        "voice_personality": voice.get("personality", ""),
+        "voice_communication_style": voice.get("communication_style", ""),
+        "voice_principles": render_list(voice.get("principles", []), "  - "),
+        "voice_dos": render_list(voice.get("dos", [])),
+        "voice_donts": render_list(voice.get("donts", [])),
+        "content_always": render_list(voice.get("content_rules", {}).get("always", []), "- [ ] "),
+        "content_never": render_list(voice.get("content_rules", {}).get("never", []), "- [ ] "),
+        "platform_guidelines": render_platform_guidelines(voice.get("platforms", {})),
+        "example_good_text": voice.get("examples", {}).get("good", {}).get("text", ""),
+        "example_good_why": voice.get("examples", {}).get("good", {}).get("why", ""),
+        "example_bad_text": voice.get("examples", {}).get("bad", {}).get("text", ""),
+        "example_bad_why": voice.get("examples", {}).get("bad", {}).get("why", ""),
+        "zone_count": str(len(zones)),
+        "zones_rendered": render_zones(zones),
+        "gate_values_list": " / ".join(gate_values) if len(gate_values) > 1 else gate_values[0] if gate_values else "strong",
+        "gate_values_primary": gate_values[0] if gate_values else "strong",
+        "queue_depth_threshold": str(pipeline.get("queue_depth_threshold", 20)),
+        "revision_cap": str(revision_cap),
+        "revision_cap_plus_one": str(revision_cap + 1),
+        "items_per_sourcing_run": str(pipeline.get("items_per_sourcing_run", "4-5")),
+        "queue_fields_list": render_queue_fields_list(config),
+        "queue_field_rules": render_queue_field_rules(config),
+        "domain_cliches": render_domain_cliches(config),
+        "domain_voice_traps": render_domain_voice_traps(config),
+        "domain_brief_traps": render_domain_brief_traps(config),
+        "domain_qa_cliches": render_domain_qa_cliches(config),
+        "allowed_formats": ", ".join(pipeline.get("allowed_formats", ["narrative long-post / blog essay"])),
+        "allowed_formats_list": render_list(pipeline.get("allowed_formats", ["narrative long-post / blog essay"]), "- "),
+        "hard_fail_summary": render_hard_fail_summary(config),
+        "research_targets": render_research_targets(config),
+        "deepdive_acceptance_extra": render_deepdive_acceptance_extra(config),
+        "deepdive_beyond_extra": render_deepdive_beyond_extra(config),
+    }
+
+
+def render_template(template_path, variables):
+    """Render a template file with variables. Uses str.format_map."""
+    with open(template_path, "r") as f:
+        content = f.read()
+    try:
+        return content.format_map(variables)
+    except KeyError as e:
+        print(f"WARNING: Missing template variable {e} in {template_path}", file=sys.stderr)
+        # Fall back to partial rendering
+        import string
+        t = string.Template(content)
+        # Can't use Template for {var} style — just return with missing vars noted
+        return content.format_map(SafeDict(variables))
+
+
+class SafeDict(dict):
+    """Dict that returns the key wrapped in braces for missing keys."""
+    def __missing__(self, key):
+        return f"{{{key}}}"
+
+
+# --- Init command ---
+
+def cmd_init(args):
+    config_path = Path(args.brand_yaml).resolve()
+    if not config_path.exists():
+        print(f"ERROR: Brand config not found: {config_path}", file=sys.stderr)
+        sys.exit(1)
+
+    with open(config_path) as f:
+        config = yaml.safe_load(f)
+
+    errors = validate_config(config)
+    if errors:
+        print("Config validation errors:", file=sys.stderr)
+        for e in errors:
+            print(f"  - {e}", file=sys.stderr)
+        sys.exit(1)
+
+    slug = config["brand"]["slug"]
+    workspace = OPENCLAW_DIR / f"workspace-{slug}"
+    ref_dir = workspace / "REFERENCE"
+    dry_run = args.dry_run
+
+    if dry_run:
+        print(f"DRY RUN — would create workspace at: {workspace}")
+    else:
+        print(f"Creating workspace: {workspace}")
+
+    # Build template variables
+    variables = build_template_vars(config)
+
+    # 1. Create workspace directory structure
+    dirs_to_create = [
+        ref_dir,
+        ref_dir / ".state",
+        ref_dir / "cards",
+        ref_dir / "dossiers",
+        ref_dir / "briefs",
+        ref_dir / "drafts",
+        ref_dir / "qa",
+        ref_dir / "revisions",
+        ref_dir / "short-form",
+        ref_dir / "lane-instructions",
+        workspace / "topics",
+    ]
+
+    for d in dirs_to_create:
+        if dry_run:
+            print(f"  mkdir: {d}")
+        else:
+            d.mkdir(parents=True, exist_ok=True)
+
+    # 2. Create symlinks
+    symlinks = {
+        workspace / "brand.yaml": config_path,
+        ref_dir / "pipeline-tools.py": CORE_DIR / "pipeline-tools.py",
+        ref_dir / "pipeline-cron.py": CORE_DIR / "pipeline-cron.py",
+        ref_dir / "pipeline-commit.py": CORE_DIR / "pipeline-commit.py",
+    }
+
+    for link, target in symlinks.items():
+        if dry_run:
+            print(f"  symlink: {link} -> {target}")
+        else:
+            if link.exists() or link.is_symlink():
+                link.unlink()
+            link.symlink_to(target)
+
+    # 3. Generate markdown files from templates
+    template_files = {
+        workspace / "AGENTS.md": TEMPLATE_DIR / "agents.md.tmpl",
+        ref_dir / "brand-config.md": TEMPLATE_DIR / "brand-config.md.tmpl",
+        ref_dir / "domain-zones.md": TEMPLATE_DIR / "domain-zones.md.tmpl",
+    }
+
+    # Rubric templates
+    rubric_dir = TEMPLATE_DIR / "rubrics"
+    if rubric_dir.exists():
+        for tmpl in rubric_dir.glob("*.tmpl"):
+            out_name = tmpl.name.replace(".tmpl", "")
+            template_files[ref_dir / out_name] = tmpl
+
+    # Lane instruction templates
+    lane_instr_dir = TEMPLATE_DIR / "lane-instructions"
+    if lane_instr_dir.exists():
+        for tmpl in lane_instr_dir.glob("*.tmpl"):
+            out_name = tmpl.name.replace(".tmpl", "")
+            template_files[ref_dir / "lane-instructions" / out_name] = tmpl
+
+    for output, template in template_files.items():
+        if not template.exists():
+            print(f"  WARNING: template missing: {template}", file=sys.stderr)
+            continue
+        content = render_template(template, variables)
+        if dry_run:
+            print(f"  generate: {output} (from {template.name})")
+        else:
+            with open(output, "w") as f:
+                f.write(content)
+
+    # 4. Copy static files
+    if STATIC_DIR.exists():
+        for static_file in STATIC_DIR.iterdir():
+            if static_file.is_file():
+                dest = ref_dir / static_file.name
+                if dry_run:
+                    print(f"  copy: {dest}")
+                else:
+                    shutil.copy2(static_file, dest)
+
+    # 5. Create empty files
+    empty_files = [
+        ref_dir / "topic-queue.jsonl",
+        ref_dir / "dossier-index.jsonl",
+        workspace / "LOG.md",
+        workspace / "topics" / "inbox.md",
+        ref_dir / ".state" / "stage-append.jsonl",
+        ref_dir / ".state" / "stage-status.jsonl",
+        ref_dir / ".state" / "stage-queue.jsonl",
+    ]
+
+    for ef in empty_files:
+        if dry_run:
+            print(f"  touch: {ef}")
+        else:
+            if not ef.exists():
+                ef.touch()
+
+    if dry_run:
+        print("\nDry run complete. No files were created.")
+        return
+
+    # 6. Register agents in openclaw.json (full, web, sonnet-light, haiku-light)
+    openclaw_json = OPENCLAW_DIR / "openclaw.json"
+    agent_config = config.get("agent", {})
+    agent_id = agent_config.get("agent_id", slug)
+    agent_id_web = f"{agent_id}-web"
+    agent_id_sonnet_light = f"{agent_id}-sonnet-light"
+    agent_id_light = f"{agent_id}-light"
+
+    if openclaw_json.exists():
+        with open(openclaw_json) as f:
+            oc = json.load(f)
+
+        agents = oc.get("agents", {}).get("list", [])
+        existing_ids = {a.get("id") for a in agents}
+
+        agent_defs = [
+            # Full agent — integrity check (full tool suite)
+            (agent_id, {
+                "id": agent_id,
+                "name": agent_id,
+                "workspace": str(workspace),
+                "agentDir": str(OPENCLAW_DIR / "agents" / agent_id / "agent"),
+                "model": {"primary": agent_config.get("model", "openai/gpt-5-mini")},
+                "sandbox": {"mode": "off", "workspaceAccess": "rw"},
+                "tools": {
+                    "profile": "full",
+                    "allow": ["read", "write", "edit", "apply_patch", "browser", "web_search", "web_fetch", "pdf", "process"]
+                }
+            }),
+            # Web agent — card, sourcing, deep-dive (full profile + web tools)
+            (agent_id_web, {
+                "id": agent_id_web,
+                "name": agent_id_web,
+                "workspace": str(workspace),
+                "agentDir": str(OPENCLAW_DIR / "agents" / agent_id_web / "agent"),
+                "model": {"primary": agent_config.get("web_model", agent_config.get("model", "openai/gpt-5-mini"))},
+                "sandbox": {"mode": "off", "workspaceAccess": "rw"},
+                "tools": {
+                    "profile": "full",
+                    "allow": ["read", "write", "edit", "apply_patch", "web_search", "web_fetch"]
+                }
+            }),
+            # Sonnet-light — brief, draft, QA (no web tools)
+            (agent_id_sonnet_light, {
+                "id": agent_id_sonnet_light,
+                "name": agent_id_sonnet_light,
+                "workspace": str(workspace),
+                "agentDir": str(OPENCLAW_DIR / "agents" / agent_id_sonnet_light / "agent"),
+                "model": {"primary": agent_config.get("model", "openai/gpt-5-mini")},
+                "sandbox": {"mode": "off", "workspaceAccess": "rw"},
+                "tools": {
+                    "profile": "coding",
+                    "allow": ["read", "write", "edit", "apply_patch"]
+                }
+            }),
+            # Haiku-light — revision, short-form (cheap, no web tools)
+            (agent_id_light, {
+                "id": agent_id_light,
+                "name": agent_id_light,
+                "workspace": str(workspace),
+                "agentDir": str(OPENCLAW_DIR / "agents" / agent_id_light / "agent"),
+                "model": {"primary": agent_config.get("revision_model", "anthropic/claude-haiku-4-5")},
+                "sandbox": {"mode": "off", "workspaceAccess": "rw"},
+                "tools": {
+                    "profile": "coding",
+                    "allow": ["read", "write", "edit", "apply_patch"]
+                }
+            }),
+        ]
+
+        for aid, entry in agent_defs:
+            if aid not in existing_ids:
+                # Ensure agent dir exists
+                Path(entry["agentDir"]).mkdir(parents=True, exist_ok=True)
+                agents.append(entry)
+                print(f"  Registered agent '{aid}' in openclaw.json")
+            else:
+                print(f"  Agent '{aid}' already exists in openclaw.json")
+
+        oc["agents"]["list"] = agents
+        with open(openclaw_json, "w") as f:
+            json.dump(oc, f, indent=2, ensure_ascii=False)
+
+    # 7. Create cron jobs
+    schedule = config.get("schedule", {})
+    delivery = config.get("delivery", {})
+    brand_name = config["brand"]["name"]
+
+    # Lane configs: (lane, schedule, model, name, message, timeout, agent_override, extra_flags)
+    # extra_flags is a dict of additional openclaw cron add flags
+    lane_configs = [
+        ("card", schedule.get("card"), agent_config.get("card_model", agent_config.get("web_model")), f"{brand_name} first-pass research run",
+         "Cron run. Follow the cron workflow in AGENTS.md exactly. IMPORTANT: Read your work item from REFERENCE/.state/next-card.json. Stage index entries by appending to REFERENCE/.state/stage-append.jsonl. Stage status updates by appending to REFERENCE/.state/stage-status.jsonl. Do NOT read or write dossier-index.jsonl or topic-queue.jsonl directly.",
+         900, agent_id_web, {"--light-context": True, "--thinking": "none"}),
+        ("sourcing", schedule.get("sourcing"), agent_config.get("sourcing_model", agent_config.get("web_model")),
+         f"{brand_name} topic sourcing run",
+         "Cron run. Follow the sourcing cron workflow in AGENTS.md exactly. IMPORTANT: Read queue depth from REFERENCE/.state/queue-depth.json. Stage new topics by appending to REFERENCE/.state/stage-queue.jsonl. Do NOT read or write topic-queue.jsonl directly.",
+         900, agent_id_web, {"--light-context": True}),
+        ("deepdive", schedule.get("deepdive"), agent_config.get("web_model", agent_config.get("model")),
+         f"{brand_name} deep-dive run",
+         "Cron run. Follow the deep-dive cron workflow in AGENTS.md exactly. IMPORTANT: Read your work item from REFERENCE/.state/next-deepdive.json. Stage index entries by appending to REFERENCE/.state/stage-append.jsonl. Do NOT read or write dossier-index.jsonl directly.",
+         900, agent_id_web, {"--light-context": True}),
+        ("brief", schedule.get("brief"), agent_config.get("model"),
+         f"{brand_name} post-brief run",
+         "Cron run. Read REFERENCE/lane-instructions/brief.md for your workflow, then follow it exactly. Read your work item from REFERENCE/.state/next-brief.json. Use _resolvedPaths for file lookups — do NOT read dossier-index.jsonl. Stage index entries by appending to REFERENCE/.state/stage-append.jsonl.",
+         300, agent_id_sonnet_light, {"--light-context": True}),
+        ("draft", schedule.get("draft"), agent_config.get("model"),
+         f"{brand_name} post-draft run",
+         "Cron run. Read REFERENCE/lane-instructions/draft.md for your workflow, then follow it exactly. Read your work item from REFERENCE/.state/next-draft.json. Use _resolvedPaths for file lookups — do NOT read dossier-index.jsonl. Stage index entries by appending to REFERENCE/.state/stage-append.jsonl.",
+         300, agent_id_sonnet_light, {"--light-context": True}),
+        ("qa", schedule.get("qa"), agent_config.get("model"),
+         f"{brand_name} QA review run",
+         "Cron run. Read REFERENCE/lane-instructions/qa.md for your workflow, then follow it exactly. Read your work item from REFERENCE/.state/next-qa.json. Use _resolvedPaths for file lookups — do NOT read dossier-index.jsonl. Stage index entries by appending to REFERENCE/.state/stage-append.jsonl. CRITICAL: You must write the QA report file and append the index entry BEFORE producing the Discord summary.",
+         300, agent_id_sonnet_light, {"--light-context": True}),
+        ("revision", schedule.get("revision"), agent_config.get("revision_model", agent_config.get("model")),
+         f"{brand_name} revision run",
+         "Cron run. Read REFERENCE/lane-instructions/revision.md for your workflow, then follow it exactly. Read your work item from REFERENCE/.state/next-revision.json. Use _resolvedPaths for file lookups — do NOT read dossier-index.jsonl. Stage index entries by appending to REFERENCE/.state/stage-append.jsonl.",
+         300, agent_id_light, {"--light-context": True, "--thinking": "none"}),
+        ("short_form", schedule.get("short_form"), agent_config.get("short_form_model", agent_config.get("model")),
+         f"{brand_name} short-form run",
+         "Cron run. Read REFERENCE/lane-instructions/short-form.md for your workflow, then follow it exactly. Read your work item from REFERENCE/.state/next-short-form.json. Use _resolvedPaths for file lookups — do NOT read dossier-index.jsonl. Stage index entries by appending to REFERENCE/.state/stage-append.jsonl.",
+         300, agent_id_light, {"--light-context": True, "--thinking": "none"}),
+        ("ghost_publish", schedule.get("ghost_publish"), agent_config.get("model"),
+         f"{brand_name} Ghost auto-publish run",
+         "Cron run. You are running autonomously — do NOT ask for confirmation. Read REFERENCE/lane-instructions/ghost-publish.md for your workflow, then follow it exactly. Read your candidate list from REFERENCE/.state/next-ghost-publish.json. Use _resolvedPaths for file lookups — do NOT read dossier-index.jsonl. Stage index entries by appending to REFERENCE/.state/stage-append.jsonl. CRITICAL: You MUST use the process tool to run the ghost-publish command. Do NOT fabricate or guess Ghost URLs — the command will return the real URL.",
+         300, agent_id_web, {"--light-context": True, "--thinking": "low", "--tz": "America/Los_Angeles"}),
+        ("integrity", schedule.get("integrity"), agent_config.get("integrity_model", "google/gemini-2.5-flash"),
+         f"{brand_name} index-integrity check",
+         "Cron run. Follow the index-integrity check workflow in AGENTS.md exactly. Read and validate JSONL files directly — parse each line as JSON and check for errors.",
+         120, agent_id, {}),
+    ]
+
+    cron_jobs_file = OPENCLAW_DIR / "cron" / "jobs.json"
+    if cron_jobs_file.exists():
+        with open(cron_jobs_file) as f:
+            cron_data = json.load(f)
+        existing_names = {j["name"] for j in cron_data.get("jobs", [])}
+    else:
+        existing_names = set()
+
+    jobs_created = 0
+    for lane, cron_expr, model, name, message, timeout, lane_agent, extra_flags in lane_configs:
+        if not cron_expr:
+            continue
+        if name in existing_names:
+            print(f"  Cron job already exists: {name}")
+            continue
+
+        cmd = [
+            "openclaw", "cron", "add",
+            "--name", name,
+            "--schedule", cron_expr,
+            "--agent", lane_agent,
+            "--model", model or agent_config.get("model", "anthropic/claude-sonnet-4-6"),
+            "--message", message,
+            "--timeout", str(timeout),
+            "--delivery-channel", delivery.get("channel", "discord"),
+            "--delivery-to", delivery.get("to", ""),
+        ]
+
+        # Add extra flags (e.g. --light-context, --thinking none)
+        for flag, value in extra_flags.items():
+            if value is True:
+                cmd.append(flag)
+            elif value is not False:
+                cmd.extend([flag, str(value)])
+
+        try:
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
+            if result.returncode == 0:
+                print(f"  Created cron job: {name}")
+                jobs_created += 1
+            else:
+                print(f"  WARNING: Failed to create cron job '{name}': {result.stderr.strip()}", file=sys.stderr)
+        except FileNotFoundError:
+            print(f"  WARNING: 'openclaw' CLI not found — skipping cron job creation for '{name}'", file=sys.stderr)
+            break
+        except subprocess.TimeoutExpired:
+            print(f"  WARNING: Timeout creating cron job '{name}'", file=sys.stderr)
+
+    # 8. Add system crontab entries
+    pre_compute_expr = schedule.get("pre_compute", "57 * * * *")
+    commit_expr = schedule.get("commit", "2-58/4 * * * *")
+
+    crontab_lines = [
+        f"\n# {brand_name} pipeline: pre-compute state",
+        f"{pre_compute_expr} cd {workspace} && python3 REFERENCE/pipeline-cron.py >> REFERENCE/.state/cron.log 2>&1",
+        f"\n# {brand_name} pipeline: commit staged ops",
+        f"{commit_expr} cd {workspace} && python3 REFERENCE/pipeline-commit.py >> REFERENCE/.state/commit.log 2>&1",
+    ]
+
+    try:
+        result = subprocess.run(["crontab", "-l"], capture_output=True, text=True)
+        existing_crontab = result.stdout if result.returncode == 0 else ""
+    except FileNotFoundError:
+        existing_crontab = ""
+
+    # Check if entries already exist
+    marker = f"cd {workspace} && python3 REFERENCE/pipeline-cron.py"
+    if marker not in existing_crontab:
+        new_crontab = existing_crontab.rstrip() + "\n" + "\n".join(crontab_lines) + "\n"
+        try:
+            proc = subprocess.run(["crontab", "-"], input=new_crontab, capture_output=True, text=True)
+            if proc.returncode == 0:
+                print(f"  Added system crontab entries for pre-compute and commit")
+            else:
+                print(f"  WARNING: Failed to update crontab: {proc.stderr.strip()}", file=sys.stderr)
+        except Exception as e:
+            print(f"  WARNING: Could not update crontab: {e}", file=sys.stderr)
+    else:
+        print(f"  System crontab entries already exist")
+
+    # 9. Run pipeline-cron.py once to populate .state/
+    try:
+        result = subprocess.run(
+            [sys.executable, str(ref_dir / "pipeline-cron.py")],
+            cwd=str(workspace),
+            capture_output=True, text=True, timeout=30
+        )
+        if result.returncode == 0:
+            print(f"  Initial state computed: {result.stdout.strip()}")
+        else:
+            print(f"  WARNING: Initial state computation failed: {result.stderr.strip()}", file=sys.stderr)
+    except Exception as e:
+        print(f"  WARNING: Could not run pipeline-cron.py: {e}", file=sys.stderr)
+
+    # 10. Summary
+    print(f"\n{'='*60}")
+    print(f"Workspace created: {workspace}")
+    print(f"Brand: {config['brand']['name']}")
+    print(f"Agent: {agent_id}")
+    print(f"Zones: {len(config.get('domain', {}).get('zones', []))}")
+    print(f"Slop patterns: {len(config.get('slop', {}).get('hard_fail', []))} hard-fail, {len(config.get('slop', {}).get('warn', []))} warn")
+    print(f"Cron jobs created: {jobs_created}")
+    print(f"{'='*60}")
+
+
+# --- Sync command ---
+
+def cmd_sync(args):
+    slug = args.brand_slug
+    workspace = OPENCLAW_DIR / f"workspace-{slug}"
+
+    if not workspace.exists():
+        print(f"ERROR: Workspace not found: {workspace}", file=sys.stderr)
+        sys.exit(1)
+
+    # Find brand.yaml (follow symlink if needed)
+    brand_yaml = workspace / "brand.yaml"
+    if not brand_yaml.exists():
+        # Try to find it in brands/
+        brand_yaml = BRANDS_DIR / f"{slug}.yaml"
+        if not brand_yaml.exists():
+            print(f"ERROR: brand.yaml not found for '{slug}'", file=sys.stderr)
+            sys.exit(1)
+
+    config_path = brand_yaml.resolve()
+    with open(config_path) as f:
+        config = yaml.safe_load(f)
+
+    errors = validate_config(config)
+    if errors:
+        print("Config validation errors:", file=sys.stderr)
+        for e in errors:
+            print(f"  - {e}", file=sys.stderr)
+        sys.exit(1)
+
+    variables = build_template_vars(config)
+    ref_dir = workspace / "REFERENCE"
+    changes = []
+
+    # Re-generate templated files
+    template_files = {
+        workspace / "AGENTS.md": TEMPLATE_DIR / "agents.md.tmpl",
+        ref_dir / "brand-config.md": TEMPLATE_DIR / "brand-config.md.tmpl",
+        ref_dir / "domain-zones.md": TEMPLATE_DIR / "domain-zones.md.tmpl",
+    }
+
+    rubric_dir = TEMPLATE_DIR / "rubrics"
+    if rubric_dir.exists():
+        for tmpl in rubric_dir.glob("*.tmpl"):
+            out_name = tmpl.name.replace(".tmpl", "")
+            template_files[ref_dir / out_name] = tmpl
+
+    # Lane instruction templates
+    lane_instr_dir = TEMPLATE_DIR / "lane-instructions"
+    lane_instr_out = ref_dir / "lane-instructions"
+    lane_instr_out.mkdir(parents=True, exist_ok=True)
+    if lane_instr_dir.exists():
+        for tmpl in lane_instr_dir.glob("*.tmpl"):
+            out_name = tmpl.name.replace(".tmpl", "")
+            template_files[lane_instr_out / out_name] = tmpl
+
+    for output, template in template_files.items():
+        if not template.exists():
+            continue
+        new_content = render_template(template, variables)
+        if output.exists():
+            with open(output) as f:
+                old_content = f.read()
+            if old_content != new_content:
+                with open(output, "w") as f:
+                    f.write(new_content)
+                changes.append(f"  updated: {output.name}")
+            # else: no change
+        else:
+            with open(output, "w") as f:
+                f.write(new_content)
+            changes.append(f"  created: {output.name}")
+
+    # Refresh static files if core has newer versions
+    if STATIC_DIR.exists():
+        for static_file in STATIC_DIR.iterdir():
+            if static_file.is_file():
+                dest = ref_dir / static_file.name
+                if dest.exists():
+                    src_mtime = static_file.stat().st_mtime
+                    dst_mtime = dest.stat().st_mtime
+                    if src_mtime > dst_mtime:
+                        shutil.copy2(static_file, dest)
+                        changes.append(f"  refreshed: {dest.name}")
+                else:
+                    shutil.copy2(static_file, dest)
+                    changes.append(f"  added: {dest.name}")
+
+    if changes:
+        print(f"Synced workspace-{slug}:")
+        for c in changes:
+            print(c)
+    else:
+        print(f"workspace-{slug}: already up to date")
+
+
+# --- List command ---
+
+def cmd_list(args):
+    print(f"Pipeline workspaces in {OPENCLAW_DIR}:\n")
+
+    found = False
+    for d in sorted(OPENCLAW_DIR.iterdir()):
+        if not d.is_dir() or not d.name.startswith("workspace-"):
+            continue
+
+        brand_yaml = d / "brand.yaml"
+        if not brand_yaml.exists() and not brand_yaml.is_symlink():
+            continue
+
+        found = True
+        slug = d.name.replace("workspace-", "")
+
+        # Check symlink health
+        symlinks_ok = True
+        symlink_issues = []
+        for name in ["brand.yaml", "REFERENCE/pipeline-tools.py", "REFERENCE/pipeline-cron.py", "REFERENCE/pipeline-commit.py"]:
+            p = d / name
+            if p.is_symlink():
+                if not p.resolve().exists():
+                    symlinks_ok = False
+                    symlink_issues.append(f"broken: {name}")
+            elif not p.exists():
+                symlinks_ok = False
+                symlink_issues.append(f"missing: {name}")
+
+        # Read brand name
+        brand_name = slug
+        if brand_yaml.exists():
+            try:
+                with open(brand_yaml) as f:
+                    cfg = yaml.safe_load(f)
+                brand_name = cfg.get("brand", {}).get("name", slug)
+            except Exception:
+                pass
+
+        status = "OK" if symlinks_ok else "ISSUES"
+        print(f"  {slug}")
+        print(f"    Brand: {brand_name}")
+        print(f"    Path:  {d}")
+        print(f"    Status: {status}")
+        if symlink_issues:
+            for issue in symlink_issues:
+                print(f"    - {issue}")
+        print()
+
+    if not found:
+        print("  No pipeline workspaces found.")
+        print(f"  Run: pipeline init <brand.yaml>")
+
+
+# --- Main ---
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="Config-driven multi-brand research-editorial pipeline",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  pipeline init brands/tech-commentary.yaml
+  pipeline init brands/tech-commentary.yaml --dry-run
+  pipeline sync tech-commentary
+  pipeline list
+"""
+    )
+    sub = parser.add_subparsers(dest="command")
+
+    p_init = sub.add_parser("init", help="Initialize a new pipeline workspace from a brand config")
+    p_init.add_argument("brand_yaml", help="Path to brand.yaml config file")
+    p_init.add_argument("--dry-run", action="store_true", help="Show what would be created without creating anything")
+
+    p_sync = sub.add_parser("sync", help="Re-generate workspace files from updated brand config")
+    p_sync.add_argument("brand_slug", help="Brand slug (e.g., tech-commentary)")
+
+    sub.add_parser("list", help="List all pipeline workspaces and their health")
+
+    args = parser.parse_args()
+    if not args.command:
+        parser.print_help()
+        sys.exit(1)
+
+    cmds = {
+        "init": cmd_init,
+        "sync": cmd_sync,
+        "list": cmd_list,
+    }
+    cmds[args.command](args)
+
+
+if __name__ == "__main__":
+    main()

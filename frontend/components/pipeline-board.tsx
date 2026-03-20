@@ -2,8 +2,7 @@
 
 import { useRef, useState } from "react";
 import type { PipelineItem, Stage } from "@/lib/data";
-import { getPriorityWeight } from "@/lib/data";
-import type { FilterGroup } from "@/lib/manifest";
+import type { FilterGroup, PipelineManifest } from "@/lib/manifest-types";
 import { TopicCard } from "./topic-card";
 import { FilterBar } from "./filter-bar";
 import { filterTopics } from "@/lib/filters";
@@ -30,17 +29,27 @@ const emptyMessages: Record<string, string> = {
   done: "No stories ready yet",
 };
 
-function sortByPriority(topics: PipelineItem[]): PipelineItem[] {
-  return topics.slice().sort((a, b) => getPriorityWeight(a) - getPriorityWeight(b));
-}
-
 interface PipelineBoardProps {
   topics: PipelineItem[];
   filterGroups?: FilterGroup[];
+  manifest: PipelineManifest;
   searchParams?: Record<string, string | string[] | undefined>;
+  prioritizedIds?: string[];
+  feedbackCounts?: Record<string, number>;
 }
 
-export function PipelineBoard({ topics, filterGroups, searchParams }: PipelineBoardProps) {
+export function PipelineBoard({ topics, filterGroups, manifest, searchParams, prioritizedIds, feedbackCounts }: PipelineBoardProps) {
+  const sortOrder = manifest.priority.sortOrder;
+  function sortByPriority(items: PipelineItem[]): PipelineItem[] {
+    return items.slice().sort((a, b) => {
+      const av = a.meta[manifest.priority.field] as string | undefined;
+      const bv = b.meta[manifest.priority.field] as string | undefined;
+      const ai = av ? sortOrder.indexOf(av) : sortOrder.length;
+      const bi = bv ? sortOrder.indexOf(bv) : sortOrder.length;
+      return (ai === -1 ? sortOrder.length : ai) - (bi === -1 ? sortOrder.length : bi);
+    });
+  }
+
   const scrollRef = useRef<HTMLDivElement>(null);
   const [search, setSearch] = useState("");
 
@@ -161,7 +170,13 @@ export function PipelineBoard({ topics, filterGroups, searchParams }: PipelineBo
                 </div>
                 <div className="flex flex-col gap-2">
                   {sorted.map((topic) => (
-                    <TopicCard key={topic.id} topic={topic} />
+                    <TopicCard
+                      key={topic.id}
+                      topic={topic}
+                      manifest={manifest}
+                      isPrioritized={prioritizedIds?.includes(topic.id)}
+                      feedbackCount={feedbackCounts?.[topic.id]}
+                    />
                   ))}
                   {sorted.length === 0 && (
                     <div className="rounded-lg border border-dashed border-stone-200 py-8 text-center text-xs text-stone-400">

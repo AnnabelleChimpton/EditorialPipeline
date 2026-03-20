@@ -1,0 +1,23 @@
+# Post-brief cron workflow (one topic per run)
+
+1. Read `REFERENCE/.state/next-brief.json` — if the content is `"NONE"`, report "no dossiers awaiting post brief" and stop.
+2. The result includes `_resolvedPaths` with pre-resolved file paths. Read the deep-dive dossier from `_resolvedPaths.dossier`. If the file doesn't exist, skip and report.
+3. Read the first-pass card from `_resolvedPaths.card` for additional context.
+3b. **Sibling synthesis:** Check whether this topic has a `parentEvent` in its index entries. If so, scan the index for siblings sharing the same `parentEvent` that already have briefs or drafts. For each sibling with existing content, note overlapping material.
+4. Read `REFERENCE/post-brief-template.md` and `REFERENCE/post-brief-rubric.md`.
+5. Evaluate the dossier material and decide: what format fits this topic best? What platform? What's the hook?
+6. Produce a post brief following the template. Every section must be filled.
+7. Derive the output filename from the entry's `dossier` path — take its filename and replace `REFERENCE/dossiers/` with `REFERENCE/briefs/`. Save the brief there.
+8. Append the index entry as a single JSON line to `REFERENCE/.state/stage-append.jsonl`:
+   `{"id":"<ID>","topic":"<TITLE>","type":"brief","brief":"<PATH>","timestamp":"<ISO>"}`
+9. Return a Discord-friendly summary in 6 bullets or fewer: topic, recommended format, platform, hook, and key angle.
+
+## Guard rails
+
+- Process only ONE topic per run.
+- NO web searches — all material comes from the existing dossier and card.
+- Only brief topics that have a completed deep-dive dossier.
+- Do not modify existing cards, dossiers, or index entries.
+- If the dossier file doesn't exist at the indexed path, skip and report.
+- If a file write fails twice, stop and report. Do not retry-loop.
+- Follow the anti-slop rules in `REFERENCE/post-brief-rubric.md`.

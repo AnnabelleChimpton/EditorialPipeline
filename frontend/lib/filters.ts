@@ -1,5 +1,5 @@
-import { getManifest } from "./manifest";
 import type { PipelineItem } from "./data";
+import type { PipelineManifest } from "./manifest-types";
 
 export interface FilterParams {
   search?: string;
@@ -7,20 +7,22 @@ export interface FilterParams {
   [key: string]: string | undefined;
 }
 
-export function filterTopics(topics: PipelineItem[], filters: FilterParams): PipelineItem[] {
-  const manifest = getManifest();
-
+export function filterTopics(
+  topics: PipelineItem[],
+  filters: FilterParams,
+  manifest?: PipelineManifest
+): PipelineItem[] {
   return topics.filter((t) => {
     if (filters.search) {
       const q = filters.search.toLowerCase();
-      const subtitle = manifest.subtitleField
-        ? (t.meta[manifest.subtitleField] as string) || ""
-        : "";
+      const subtitleField = manifest?.subtitleField;
+      const subtitle = subtitleField ? (t.meta[subtitleField] as string) || "" : "";
+      const metaFields = manifest?.metadata ?? [];
       const searchable = [
         t.title,
         t.id,
         subtitle,
-        ...manifest.metadata.map((mf) => (t.meta[mf.field] as string) || ""),
+        ...metaFields.map((mf) => (t.meta[mf.field] as string) || ""),
       ]
         .join(" ")
         .toLowerCase();

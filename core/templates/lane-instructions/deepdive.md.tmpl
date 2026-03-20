@@ -1,0 +1,39 @@
+# Deep-dive cron workflow (one topic per run)
+
+1. Read `REFERENCE/.state/next-deepdive.json` — if the content is `"NONE"`, report "no {gate_values_primary} topics awaiting deep-dive" and stop.
+2. Read the first-pass card at the path in the result's `card` field. If the file doesn't exist, skip and report.
+3. Read `REFERENCE/topic-dossier-template.md` and `REFERENCE/deep-dive-rubric.md`.
+4. Pay special attention to the card's **Upgrade path** and **Open question** sections — these are research leads.
+5. Do 2-3 web searches targeting the source types listed in `REFERENCE/deep-dive-rubric.md` under "Research targets." After each web search, fully process results before the next search. If a search returns a rate-limit error (429), write the cooldown file, stop all searches, and complete the dossier with sources already gathered.
+6. Produce a full dossier using the template format. All sections must be filled. Follow the deep-dive rubric.
+7. Derive the output filename from the entry's `card` path — take its filename and replace `REFERENCE/cards/` with `REFERENCE/dossiers/`. Save the dossier there.
+8. **Source verification:** Run `python3 REFERENCE/pipeline-tools.py verify-sources <dossier-path>`. Review the JSON output:
+   - **Failed URLs**: Try to find the correct URL via web search. If unfixable, remove the source and note it in "Open questions." Re-save.
+   - **Unverified quotes**: If the quote text was not found on any cited page, check if you paraphrased with brackets or altered wording. Either correct the quote to match the actual source text or move it to "Open questions" as unverified.
+   - **Unverified names**: Check for spelling variations. Fix or flag.
+   - Re-run `verify-sources` after fixes. Do NOT skip this step or suggest the human run it.
+9. Stage the index entry: `python3 REFERENCE/pipeline-tools.py stage --type deepdive --id <id> --topic "<TITLE>" --dossier "<PATH>"`.
+10. Return a Discord-friendly summary of new findings in 6 bullets or fewer. Include the verify-sources result (e.g., "8/8 URLs verified").
+
+## Deep-dive guard rails
+
+- Process only ONE topic per run.
+- Only deepen topics with `verdict: "{gate_values_primary}"` — skip other verdicts.
+- Max 3 web searches (use `web_fetch` on known URLs for additional sourcing).
+- Do NOT rewrite the first-pass card — the dossier is a separate, richer artifact.
+- If the first-pass card doesn't exist at the indexed path, skip and report.
+- If web research fails 3 times (excluding 429 rate-limit errors), stop and report.
+- If a file write fails twice, stop and report. Do not retry-loop.
+
+## Web search coordination
+
+All lanes that use `web_search` MUST follow this protocol:
+
+**Before searching:**
+1. Read `REFERENCE/.search-cooldown.json`. If `cooldownUntil` is in the future, do NOT search.
+
+**After each successful search:**
+Write `{{"lastSearchAt": "<ISO>", "lane": "deepdive"}}` to `REFERENCE/.search-cooldown.json`.
+
+**On 429 (rate limit) error:**
+Write `{{"lastSearchAt": "<ISO>", "lane": "deepdive", "cooldownUntil": "<ISO + 5 min>"}}` to `REFERENCE/.search-cooldown.json`. Stop ALL web searches for this run.

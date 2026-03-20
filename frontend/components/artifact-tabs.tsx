@@ -5,7 +5,7 @@ import type { Stage } from "@/lib/data";
 import { MarkdownViewer } from "./markdown-viewer";
 import { CopyButton } from "./copy-button";
 
-type ArtifactKey = "card" | "dossier" | "brief" | "draft" | "qa" | "revision";
+type ArtifactKey = "card" | "dossier" | "brief" | "draft" | "qa" | "revision" | "shortForm";
 
 interface ArtifactTabsProps {
   artifacts: Record<string, string | undefined>;
@@ -33,10 +33,11 @@ const tabDefs: { key: ArtifactKey; label: string }[] = [
   { key: "draft", label: "Draft" },
   { key: "qa", label: "Editor Review" },
   { key: "revision", label: "Draft (Revised)" },
+  { key: "shortForm", label: "Short Post" },
 ];
 
 function pickDefaultTab(artifacts: Record<string, string | undefined>): ArtifactKey {
-  const preference: ArtifactKey[] = ["revision", "qa", "draft", "brief", "dossier", "card"];
+  const preference: ArtifactKey[] = ["shortForm", "revision", "qa", "draft", "brief", "dossier", "card"];
   return preference.find((k) => artifacts[k]) ?? "card";
 }
 

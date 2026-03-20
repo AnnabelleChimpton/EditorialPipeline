@@ -9,8 +9,10 @@
     "colors": { "high": "red", "medium": "amber", "low": "stone" }
   },
   "metadata": [
-    { "field": "era", "label": "Era", "filterable": true },
-    { "field": "category", "label": "Category", "filterable": true },
+    { "field": "zone", "label": "Zone", "filterable": true },
+    { "field": "eraBucket", "label": "Era", "filterable": true },
+    { "field": "category", "label": "Category" },
+    { "field": "era", "label": "Years" },
     { "field": "sourceability", "label": "Sources", "badge": true, "colors": { "high": "emerald", "medium": "amber", "low": "stone" } }
   ]
 }

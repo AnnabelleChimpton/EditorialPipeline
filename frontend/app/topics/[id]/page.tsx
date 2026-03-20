@@ -2,9 +2,12 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { getTopicById } from "@/lib/data";
 import { getManifest, getBadgeStyle } from "@/lib/manifest";
+import { getFeedbackForTopic, isPrioritized } from "@/lib/state";
 import { StageBadge } from "@/components/stage-badge";
 import { ArtifactTabs } from "@/components/artifact-tabs";
 import { CopyButton } from "@/components/copy-button";
+import { PriorityToggle } from "@/components/priority-toggle";
+import { FeedbackPanel } from "@/components/feedback-panel";
 
 export const dynamic = "force-dynamic";
 
@@ -18,6 +21,27 @@ export default async function TopicDetailPage({
   if (!topic) notFound();
 
   const manifest = getManifest();
+  const topicFeedback = getFeedbackForTopic(id);
+  const topicIsPrioritized = isPrioritized(id);
+
+  // Build lane list based on available artifacts, always include "*"
+  const allLanes = ["*", "brief", "draft", "qa", "revision", "short-form"];
+  const artifactLaneMap: Record<string, string> = {
+    brief: "brief",
+    draft: "draft",
+    qa: "qa",
+    revision: "revision",
+    shortForm: "short-form",
+  };
+  const availableLanes = ["*"];
+  for (const [artifactKey, lane] of Object.entries(artifactLaneMap)) {
+    if (topic.artifacts[artifactKey as keyof typeof topic.artifacts]) {
+      availableLanes.push(lane);
+    }
+  }
+  // Always include all lanes so feedback can be set proactively
+  const feedbackLanes = allLanes;
+
   const finalDraft = topic.artifacts.revision || topic.artifacts.draft;
   const subtitle = manifest.subtitleField
     ? (topic.meta[manifest.subtitleField] as string | undefined)
@@ -68,6 +92,7 @@ export default async function TopicDetailPage({
             <div className="flex items-center gap-3 mb-2">
               <span className="text-sm font-mono text-stone-400">{topic.id}</span>
               <StageBadge stage={topic.currentStage} />
+              <PriorityToggle topicId={topic.id} isPrioritized={topicIsPrioritized} />
               {topic.qaStatus && (
                 <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${
                   topic.qaStatus === "approved"
@@ -119,13 +144,20 @@ export default async function TopicDetailPage({
               </div>
             )}
           </div>
-          {topic.currentStage === "done" && finalDraft && (
-            <div className="shrink-0">
-              <CopyButton text={finalDraft} label="Copy Final Draft" />
+          {topic.currentStage === "done" && (
+            <div className="flex shrink-0 items-center gap-2">
+              {topic.artifacts.shortForm && (
+                <CopyButton text={topic.artifacts.shortForm} label="Copy Short Post" />
+              )}
+              {finalDraft && (
+                <CopyButton text={finalDraft} label="Copy Final Draft" />
+              )}
             </div>
           )}
         </div>
       </div>
+
+      <FeedbackPanel topicId={topic.id} initialFeedback={topicFeedback} lanes={feedbackLanes} />
 
       {typeof topic.meta.notes === "string" && topic.meta.notes && (
         <div className="rounded-xl border border-amber-200/60 bg-amber-50/40 p-4 mb-8">

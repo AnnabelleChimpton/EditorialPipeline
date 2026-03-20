@@ -2,7 +2,7 @@
 
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { useCallback } from "react";
-import type { FilterGroup } from "@/lib/manifest";
+import type { FilterGroup } from "@/lib/manifest-types";
 
 interface FilterBarProps {
   groups: FilterGroup[];

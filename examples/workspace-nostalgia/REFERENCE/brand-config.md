@@ -23,6 +23,7 @@
 - Generic millennial bait ("only 90s kids remember", "this hit different", "right in the feels")
 - "legendary", "game-changing", "revolutionary" used unironically
 - "Content" as a noun when referring to creative work (say "posts", "writing", "videos", etc.)
+- "It's not X, it's Y" / "This wasn't X, it was Y" (overused AI reframe structure)
 
 ## Content Rules
 

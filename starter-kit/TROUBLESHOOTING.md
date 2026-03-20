@@ -59,11 +59,11 @@ Common issues encountered during development, with symptoms and fixes.
 
 **Symptom:** Lanes skip topics, produce duplicates, or fail to parse the index.
 
-**Cause:** A failed or interrupted write left a partial JSON line, or a job overwrote the file instead of appending.
+**Cause:** A failed or interrupted write left a partial JSON line, or a job wrote directly to `dossier-index.jsonl` instead of using the staging pipeline.
 
 **Fix:**
 - Open the JSONL file and check the last line. If it is incomplete JSON, delete that line.
-- Ensure all cron prompts explicitly say "append-only" for JSONL files — never full-file rewrite.
+- Ensure agents never write to `dossier-index.jsonl` or `topic-queue.jsonl` directly — all writes should go through staging files (`.state/stage-*.jsonl`) which `pipeline-commit.py` flushes atomically.
 - If entries are duplicated, deduplicate by `id` and keep the latest.
 
 ---
@@ -77,7 +77,8 @@ Common issues encountered during development, with symptoms and fixes.
 **Fix:**
 - Add domain-specific anti-slop flags to the relevant rubric (e.g. `first-pass-dossier-rubric.md`, `deep-dive-rubric.md`, `post-draft-rubric.md`).
 - Tighten the minimum acceptance bar (raise the "strong" threshold).
-- Consider switching models — `openai-codex/gpt-5.4` has been more reliable than Mistral for structured output.
+- Use a full-size model (`openai/gpt-5.4` or `openai-codex/gpt-5.4`) for writing lanes — `gpt-5-mini` is unreliable for creative writing and produces repeated slop patterns.
+- Add a mechanical slop-check step (`pipeline-tools.py slop-check`) to draft and revision lanes to catch patterns before QA.
 
 ---
 
@@ -134,7 +135,21 @@ Common issues encountered during development, with symptoms and fixes.
 
 ---
 
-## 11. Revised draft not picked up by QA
+## 11. First lane run fails to append to empty `dossier-index.jsonl`
+
+**Symptom:** Lane 2 completes research and creates a card file, but fails when trying to stage the first entry. The staging command errors because `dossier-index.jsonl` is empty.
+
+**Cause:** `dossier-index.jsonl` is a truly empty file (0 bytes). The staging tools need at least a newline to work with.
+
+**Fix:**
+- Seed the file with a blank line: `echo "" > dossier-index.jsonl`
+- Re-run the lane — it will stage correctly this time.
+
+**Prevention:** When setting up a new workspace, always use `echo "" > dossier-index.jsonl` instead of `> dossier-index.jsonl` or `touch`. The SETUP guide now recommends this.
+
+---
+
+## 12. Revised draft not picked up by QA (formerly #11)
 
 **Symptom:** Lane 7 produces a `-r1.md` file and appends to the index, but Lane 6 never QA-reviews it.
 
@@ -144,3 +159,55 @@ Common issues encountered during development, with symptoms and fixes.
 - Verify Lane 6's cron prompt checks for both `type: "draft"` and `type: "revision"` entries in `dossier-index.jsonl`.
 - Check that the revision file naming follows the convention: `REFERENCE/drafts/<id>-<slug>-r1.md`. The QA lane looks for the absence of a QA report at `REFERENCE/qa/<id>-<slug>-r1.md`.
 - Verify the index entry for the revision has `"type": "revision"` and a `"draft"` field pointing to the correct path.
+
+---
+
+## 13. Revision lane crashes with OpenAI 500 errors mid-generation
+
+**Symptom:** The revision lane consistently returns OpenAI 500 errors ("An error occurred while processing your request") after 30-50 seconds, with very low output tokens but high total tokens. Other lanes using the same model work fine.
+
+**Cause:** When the revision lane rewrites the entire draft file using a `write` tool call, OpenAI's content safety system can terminate generation mid-stream if the draft contains sensitive quoted material (profanity, slurs, controversial content in historical quotes). The model crashes trying to reproduce this content in the tool call output.
+
+**Fix:** Switch the revision workflow from full-file rewrite to **copy-then-edit**:
+1. Copy the original draft to the revision filename using `cp` (via the `process` tool)
+2. Make targeted `edit` operations on the copied file
+3. Never regenerate the full file with `write`
+
+This is now the default in `REFERENCE/lane-instructions/revision.md` and `REFERENCE/post-revision-rubric.md`.
+
+---
+
+## 14. Revision lane `thinking: "none"` causes failures
+
+**Symptom:** Revision jobs error out with OpenAI 500s while other lanes with `thinking: "low"` work fine.
+
+**Cause:** The revision task (reading QA report + draft + brief + dossier + 2 rubrics, then planning targeted fixes) requires more reasoning than a zero-thinking budget allows. The model enters an internal reasoning spiral trying to plan complex multi-constraint edits.
+
+**Fix:** Set `thinking: "low"` on the revision cron job: `openclaw cron edit <revision-job-id> --thinking low`. All writing lanes (4-7) should use `thinking: "low"`.
+
+---
+
+## 15. GPT-5-mini drafts fail QA due to repeated slop patterns
+
+**Symptom:** Drafts consistently contain "It's not X, it's Y" negation-reframes, "what happened next" throat-clears, metaphor stacking, and overly formal prose. Revisions fix one instance but introduce another variant of the same pattern.
+
+**Cause:** GPT-5-mini has deeply ingrained rhetorical habits (especially the negation-reframe) that it uses by default. The anti-slop rules in the draft rubric aren't prominent enough — the model reads them but doesn't internalize them.
+
+**Fix:** Add a **pre-flight constraint block** to `REFERENCE/lane-instructions/draft.md` that the model reads immediately before writing. This block should:
+1. Lead with a positive voice example (what good writing looks like for your brand)
+2. Follow with a concrete bad example (what to avoid)
+3. List banned constructions with explicit alternatives
+4. Include a voice check ("If this reads like a content mill or research memo, it has failed")
+5. Explicitly ban structured-notes format ("Write a finished post, not an outline")
+
+See `REFERENCE/lane-instructions/draft.md` step 6 for the full template.
+
+---
+
+## 16. Drafts come back as structured outlines instead of finished posts
+
+**Symptom:** After adding anti-slop constraints, the model produces structured research notes with section headers ("Key moments", "Open questions", "Suggested thread structure") instead of a finished narrative post.
+
+**Cause:** When the anti-slop ban list dominates the prompt, the model gets cautious and retreats to a "safe" structured format. It avoids slop by avoiding personality entirely.
+
+**Fix:** Balance the pre-flight block by leading with positive voice direction (personality, examples of GOOD writing, specific style rules) BEFORE the ban list. The model needs to know what to aim for, not just what to avoid. Also add explicit: "Write a proper finished post, not an outline. No section headers."

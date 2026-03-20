@@ -28,6 +28,7 @@ export interface PipelineItem {
     draft?: string;
     qa?: string;
     revision?: string;
+    shortForm?: string;
   };
   /** All domain-specific metadata from queue + index, keyed by original field name */
   meta: Record<string, unknown>;
@@ -47,6 +48,7 @@ interface IndexEntry {
   qaStatus?: "approved" | "needs-edits";
   revisionRound?: number;
   revisionStatus?: string;
+  shortForm?: string;
   timestamp?: string;
   [key: string]: unknown;
 }
@@ -57,12 +59,106 @@ interface QueueEntry {
   [key: string]: unknown;
 }
 
+/**
+ * Attempt to repair a malformed JSONL line by replacing non-structural
+ * double quotes inside string values with single quotes.
+ *
+ * A `"` is considered structural if it is:
+ *  - preceded by `{`, `,`, or `:` (possibly with whitespace) → opening a key or value
+ *  - followed by `:`, `,`, `}`, `]` (possibly with whitespace) or is the last `"` before EOL → closing a key or value
+ *
+ * Everything else is an interior quote that broke the JSON and gets replaced with `'`.
+ */
+function tryRepairJSONL(raw: string): unknown | null {
+  const line = raw
+    .replace(/\u201c/g, '"')   // left smart double quote → straight
+    .replace(/\u201d/g, '"')   // right smart double quote → straight
+    .replace(/\u2018/g, "'")   // left smart single quote
+    .replace(/\u2019/g, "'")   // right smart single quote
+    .trim();
+
+  if (!line) return null;
+
+  // Fast path: line is already valid JSON
+  try {
+    return JSON.parse(line);
+  } catch {
+    // fall through to repair
+  }
+
+  // Character-level state machine to find non-structural quotes
+  const chars = [...line];
+  const repaired: string[] = [];
+  let inString = false;
+  let escaped = false;
+
+  for (let i = 0; i < chars.length; i++) {
+    const ch = chars[i];
+
+    if (escaped) {
+      repaired.push(ch);
+      escaped = false;
+      continue;
+    }
+
+    if (ch === "\\") {
+      repaired.push(ch);
+      escaped = true;
+      continue;
+    }
+
+    if (ch === '"') {
+      if (!inString) {
+        // Opening quote — always structural
+        repaired.push(ch);
+        inString = true;
+      } else {
+        // We're inside a string. Is this quote structural (closing)?
+        // Look ahead past optional whitespace for a structural follower: `:`, `,`, `}`, `]`, or EOL
+        let j = i + 1;
+        while (j < chars.length && (chars[j] === " " || chars[j] === "\t")) j++;
+        const next = j < chars.length ? chars[j] : undefined;
+        const isClosing =
+          next === undefined || // end of line
+          next === ":" ||
+          next === "," ||
+          next === "}" ||
+          next === "]";
+
+        if (isClosing) {
+          repaired.push(ch);
+          inString = false;
+        } else {
+          // Non-structural interior quote → replace with single quote
+          repaired.push("'");
+        }
+      }
+    } else {
+      repaired.push(ch);
+    }
+  }
+
+  const fixed = repaired.join("");
+  try {
+    const result = JSON.parse(fixed);
+    console.warn(`[JSONL repair] Auto-repaired line with non-structural quotes`);
+    return result;
+  } catch (e) {
+    console.error(`[JSONL repair] Repair failed: ${(e as Error).message}`);
+    return null;
+  }
+}
+
 function parseJSONL<T>(filePath: string): T[] {
   const content = fs.readFileSync(filePath, "utf-8");
-  return content
-    .split("\n")
-    .filter((line) => line.trim())
-    .map((line) => JSON.parse(line) as T);
+  const results: T[] = [];
+  for (const raw of content.split("\n")) {
+    const parsed = tryRepairJSONL(raw);
+    if (parsed !== null) {
+      results.push(parsed as T);
+    }
+  }
+  return results;
 }
 
 function resolveStage(entries: IndexEntry[]): {
@@ -104,6 +200,9 @@ function resolveStage(entries: IndexEntry[]): {
       if (ts) artifactTimestamps["revision"] = ts;
       revisionRound = entry.revisionRound;
       revisionStatus = entry.revisionStatus as string | undefined;
+    } else if (type === "short-form") {
+      if (entry.shortForm) artifacts.shortForm = entry.shortForm;
+      if (ts) artifactTimestamps["shortForm"] = ts;
     }
   }
 
@@ -186,7 +285,9 @@ export function getTopics(): PipelineItem[] {
           existing.meta[key] = val;
         }
       }
-    } else if (q.status === "queued") {
+    } else {
+      // Topics not in the index: "queued" → queued stage, "done" → card stage (card was written)
+      const inferredStage: Stage = q.status === "done" ? "card" : "queued";
       const meta: Record<string, unknown> = {};
       for (const [key, val] of Object.entries(q)) {
         if (!reservedKeys.has(key) && val !== undefined) {
@@ -196,7 +297,7 @@ export function getTopics(): PipelineItem[] {
       itemMap.set(q.id, {
         id: q.id,
         title: (q[manifest.titleField] as string) || q.id,
-        currentStage: "queued",
+        currentStage: inferredStage,
         meta,
         artifacts: {},
       });
@@ -228,6 +329,7 @@ export function getTopicById(id: string): PipelineItem | null {
     draft: readArtifact(topic.artifacts.draft),
     qa: readArtifact(topic.artifacts.qa),
     revision: readArtifact(topic.artifacts.revision),
+    shortForm: readArtifact(topic.artifacts.shortForm),
   };
 
   return topic;
@@ -275,6 +377,7 @@ const activityLabels: Record<string, string> = {
   draft: "Draft ready",
   qa: "Editor review complete",
   revision: "Revision submitted",
+  "short-form": "Short post ready",
 };
 
 export function getRecentActivity(count = 10): ActivityEntry[] {
@@ -374,6 +477,7 @@ export function getReadyTopics(): PipelineItem[] {
         draft: readArtifact(topic.artifacts.draft),
         qa: readArtifact(topic.artifacts.qa),
         revision: readArtifact(topic.artifacts.revision),
+        shortForm: readArtifact(topic.artifacts.shortForm),
       },
     };
   });

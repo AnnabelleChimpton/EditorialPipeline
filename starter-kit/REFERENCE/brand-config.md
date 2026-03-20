@@ -20,6 +20,7 @@
 - [Specific words or phrases that are off-brand]
 - [Cliches common in your space that you want to avoid]
 - [Tone registers that don't fit — e.g., sycophantic, hype-driven, generic]
+- "It's not X, it's Y" / "This wasn't X, it was Y" (overused AI reframe structure)
 
 ## Content Rules
 

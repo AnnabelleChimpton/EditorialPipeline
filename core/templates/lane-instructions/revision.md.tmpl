@@ -1,0 +1,30 @@
+# Revision cron workflow (one topic per run)
+
+1. Read `REFERENCE/.state/next-revision.json` — if the content is `"NONE"`, report "no drafts awaiting revision" and stop.
+2. The result includes `_revisionRound` (the round to produce), `_qaTarget` (the draft that was QA'd), and `_resolvedPaths` with pre-resolved file paths.
+3. If `_revisionRound` > {revision_cap}, STOP — revision cap reached. Append a human-review entry and report.
+4. Read the QA report at the path in the result's `qa` field. If the file doesn't exist, skip and report.
+5. Read the draft that was QA'd (from `_qaTarget.draft`).
+6. Read the post brief from `_resolvedPaths.brief` and dossier from `_resolvedPaths.dossier`.
+7. Read `REFERENCE/post-revision-rubric.md` and `REFERENCE/post-draft-rubric.md`.
+8. If `REFERENCE/brand-config.md` exists, read it for voice guidelines.
+9. Address every numbered issue in the QA report. For each issue: find the quoted passage in the draft, apply the fix or suggested direction, verify the fix doesn't introduce new problems. IMPORTANT: when fixing a slop-check failure (e.g. em-dash removal), you must restructure the sentence, not just swap one punctuation mark for another. A comma splice (two independent clauses joined by a comma) is worse than an em-dash. Use a period or semicolon between independent clauses.
+10. Preserve everything the QA report praised or did not flag. Do not rewrite approved sections.
+11. Fill out the revision notes section: what changed, what was preserved, which QA issues were addressed.
+12. Derive the base filename from the QA'd draft's path — strip `.md` and append `-r<N>.md` (where N is the revision round). Save there.
+13. **Slop check:** Run `python3 REFERENCE/pipeline-tools.py slop-check --no-llm <revision-draft-path>`. If it returns FAIL, fix every flagged pattern and re-run. Maximum 3 fix-and-rerun cycles. If the check still fails after 3 cycles, save the draft as-is, append the index entry, and include the remaining failures in the summary. Do not loop beyond 3 cycles.
+14. Stage the index entry using the `stage` command (do NOT write to stage-append.jsonl directly):
+    ```
+    python3 REFERENCE/pipeline-tools.py stage --type revision --id <ID> --topic "<TITLE>" --draft "<PATH>" --revision-round <1|{revision_cap}>
+    ```
+15. Return a Discord-friendly summary in 6 bullets or fewer: topic, revision round, number of QA issues addressed, and key changes made.
+
+## Guard rails
+
+- Process only ONE topic per run.
+- NO web searches — all material comes from existing drafts, QA reports, briefs, and dossiers.
+- Do NOT modify the original draft file or previous revision — revisions are new files (`-r1`, `-r2`).
+- Do NOT modify existing QA reports, briefs, dossiers, cards, or index entries.
+- Maximum {revision_cap} revision rounds. If `-r{revision_cap}` still fails QA, flag for human review. Do NOT produce `-r{revision_cap_plus_one}`.
+- If the QA report, draft, or brief file doesn't exist, skip and report.
+- If a file write fails twice, stop and report. Do not retry-loop.

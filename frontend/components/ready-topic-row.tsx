@@ -2,11 +2,11 @@
 
 import Link from "next/link";
 import type { PipelineItem } from "@/lib/data";
-import { getManifest, getBadgeStyle } from "@/lib/manifest";
+import type { PipelineManifest } from "@/lib/manifest-types";
+import { getBadgeStyle } from "@/lib/manifest-types";
 import { CopyButton } from "./copy-button";
 
-export function ReadyTopicRow({ topic }: { topic: PipelineItem }) {
-  const manifest = getManifest();
+export function ReadyTopicRow({ topic, manifest }: { topic: PipelineItem; manifest: PipelineManifest }) {
   const finalDraft = topic.artifacts.revision || topic.artifacts.draft || "";
   const subtitle = manifest.subtitleField
     ? (topic.meta[manifest.subtitleField] as string | undefined)
@@ -65,6 +65,7 @@ export function ReadyTopicRow({ topic }: { topic: PipelineItem }) {
           </div>
         </div>
         <div className="flex shrink-0 items-center gap-2">
+          {topic.artifacts.shortForm && <CopyButton text={topic.artifacts.shortForm} label="Copy Short Post" />}
           {finalDraft && <CopyButton text={finalDraft} label="Copy Draft" />}
           <Link
             href={`/topics/${topic.id}`}

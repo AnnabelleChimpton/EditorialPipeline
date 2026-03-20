@@ -1,0 +1,23 @@
+# Card cron workflow (one topic per run)
+
+1. Read `REFERENCE/.state/next-card.json` — if the content is `"NONE"`, report "queue empty" and stop.
+2. Read `REFERENCE/topic-card-template.md` and `REFERENCE/first-pass-dossier-rubric.md`.
+3. Research the topic using web sources (max 3 solid sources; abandon after 3 failed fetches).
+3b. If web research fails 3 times, append `{{"id":"<id>","status":"blocked"}}` to `REFERENCE/.state/stage-status.jsonl` — report the blocker and stop.
+4. Produce a topic card following the template and rubric. Verdict: {gate_values_list}.
+5. Use the `_slug` field from the state file as the filename component.
+6. Save the card to `REFERENCE/cards/<id>-<slug>.md`.
+7. Stage the index entry: `python3 REFERENCE/pipeline-tools.py stage --type card --id <id> --topic "<TITLE>" --verdict <verdict> --sources <count> --card "<PATH>"` (add `--parent-event "<event>"` if applicable).
+8. Append `{{"id":"<id>","status":"done"}}` to `REFERENCE/.state/stage-status.jsonl`.
+9. Mark the matching line in `topics/inbox.md` as `[x]`.
+10. Optionally append one brief line to `LOG.md`.
+11. Return a Discord-friendly summary in 6 bullets or fewer.
+
+## Guard rails
+
+- Process only ONE topic per run.
+- Do not create a card if the card file already exists (dedup guard).
+- Do not rewrite existing files wholesale — append-only where specified.
+- If a file write fails twice, stop and report the blocker. Do not retry-loop.
+- Prefer primary sources (SEC filings, court documents, official announcements, source code) over tech blog summaries.
+- Follow the anti-slop rules in `REFERENCE/first-pass-dossier-rubric.md`.

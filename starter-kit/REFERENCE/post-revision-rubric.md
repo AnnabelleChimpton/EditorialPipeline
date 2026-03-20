@@ -15,10 +15,30 @@ A revision is acceptable only if it:
 
 ## Revision rules
 - Fix what QA flagged. Do not rewrite sections QA approved.
-- Treat the QA report as a punch list: every numbered issue must be resolved or explicitly noted as unresolvable (with reason).
+- Treat the QA report as a punch list: every numbered issue must be resolved. Anti-slop issues are NEVER "unresolvable" — if QA flagged a banned phrase or structure, you must rewrite that sentence using a different construction. "Retained for rhetorical purposes" is not an acceptable resolution. If you can't find an alternative construction, cut the sentence entirely.
 - Do NOT do web research. All material comes from the existing dossier, brief, and original draft.
 - Do NOT change the format, platform, or hook direction unless the QA report explicitly called for it.
 - Preserve the voice: if the original draft had specific good lines or structural choices noted by QA, keep them intact.
+
+## Copy-then-edit workflow (MANDATORY)
+
+Revisions MUST be created using copy-then-edit, not full-file rewrite:
+1. Copy the original draft to the revision filename using the `process` tool: `cp <original-draft-path> <revision-filename>`
+2. Make targeted `edit` operations on the copied file — one edit per QA issue.
+3. Do NOT use `write` to regenerate the entire file. This avoids content filter issues with models that may flag sensitive quoted material during regeneration.
+
+This approach is mandatory because:
+- It prevents the model from introducing new problems in sections QA already approved
+- It avoids OpenAI content filter crashes when drafts contain quoted sensitive material (profanity, slurs in historical quotes, etc.)
+- It produces smaller, more reviewable diffs
+
+## Pre-save slop check (MANDATORY)
+
+Before saving the revision, use the `process` tool to execute:
+```
+python3 REFERENCE/pipeline-tools.py slop-check <your-revision-file>
+```
+If the result is `FAIL`, fix every flagged pattern before saving. Do NOT submit a revision that fails the mechanical check — it will just come back from QA again.
 
 ## Revision cap
 - Maximum 2 revision rounds per topic: `-r1` and `-r2`.

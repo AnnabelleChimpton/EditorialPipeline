@@ -26,6 +26,7 @@ The draft must NOT:
 - End with a generic call-to-action ("What do you think? Let us know in the comments!")
 - Use em-dashes more than twice per post (they're an AI tell at high frequency)
 - Stack rhetorical questions
+- Use the "It's not X, it's Y" reframe structure (e.g., "This wasn't about..., it was about...", "The real issue isn't... — it's...", "isn't X, it's Y") — find a different construction
 
 The draft SHOULD:
 - Sound like a specific person with opinions, not a content mill

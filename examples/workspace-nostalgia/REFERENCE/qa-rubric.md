@@ -28,6 +28,7 @@ Read the draft and the brief side by side. Produce a QA report that either appro
   - Generic engagement CTAs at the end
   - Listicle filler transitions
   - Every paragraph starting with the same structure
+  - "It's not X, it's Y" reframe — variants include "This wasn't..., it was...", "The real issue isn't... — it's...", "isn't about X, it's about Y". Any occurrence is a flag.
   - Vague adjectives doing the work of specific details ("strange genius," "inevitable cleanup," "remarkable rise") — if the adjective could be replaced by a concrete fact, flag it
 
 ### 3. Substance check

@@ -1,0 +1,28 @@
+# QA cron workflow (one topic per run)
+
+1. Read `REFERENCE/.state/next-qa.json` — if the content is `"NONE"`, report "no drafts awaiting QA" and stop.
+2. The result includes `_resolvedPaths` with pre-resolved file paths. Read the draft at the path in the result's `draft` (or `shortForm`) field. If the file doesn't exist, skip and report.
+3. Read the post brief from `_resolvedPaths.brief`.
+4. Read `REFERENCE/qa-template.md` and `REFERENCE/qa-rubric.md`.
+5. If `REFERENCE/brand-config.md` exists, read it for voice guidelines.
+6. **Mechanical slop check:** Read `REFERENCE/.state/commit-result.json` — check if the draft was flagged by the automated slop check. Also scan the draft manually against the slop patterns in the rubric. If slop is found, the draft automatically gets `needs-edits` — list every hard fail as a numbered issue. Do NOT approve a draft that contains slop patterns.
+7. Run remaining QA checks: brief compliance, substance check, argument defensibility, source traceability, brand voice compliance, platform fit, cross-source reconciliation, and manual anti-slop scan for patterns the tool doesn't catch.
+8. Produce a QA report following the template. Be specific — quote the draft when flagging issues.
+9. If the draft passes the slop check and is genuinely good, say so. Don't manufacture issues.
+10. Derive the output filename from the entry's `draft` path — take its filename and replace `REFERENCE/drafts/` with `REFERENCE/qa/`. Save the QA report there.
+11. Append the index entry as a single JSON line to `REFERENCE/.state/stage-append.jsonl`:
+    `{"id":"<ID>","topic":"<TITLE>","type":"qa","qa":"<PATH>","qaStatus":"<approved|needs-edits>","timestamp":"<ISO>"}`
+12. Return a Discord-friendly summary in 6 bullets or fewer: topic, QA status, key issues found (if any), and what works.
+
+## Guard rails
+
+- Process only ONE topic per run.
+- NO web searches.
+- Do NOT rewrite or modify the draft — only create a QA report.
+- Do not modify existing cards, dossiers, briefs, drafts, or index entries.
+- If the draft or brief file doesn't exist, skip and report.
+- If a file write fails twice, stop and report. Do not retry-loop.
+- Be honest: if the draft is good, approve it. Don't invent problems.
+- Revision drafts (`-r1`, `-r2`) get the same QA treatment as originals.
+- CRITICAL: Steps 10-11 (write QA report file + append index entry) MUST complete before step 12 (Discord summary). If you produce a summary without writing files, the pipeline will re-process the same topic forever.
+- If you cannot complete the file writes for any reason, report an error — do NOT output an approval summary without persisting it.

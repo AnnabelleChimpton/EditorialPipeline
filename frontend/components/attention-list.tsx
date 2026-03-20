@@ -1,9 +1,9 @@
 import Link from "next/link";
 import type { PipelineItem } from "@/lib/data";
-import { getPriorityWeight } from "@/lib/data";
+import type { PipelineManifest } from "@/lib/manifest-types";
 import { StageBadge } from "./stage-badge";
 
-export function AttentionList({ topics }: { topics: PipelineItem[] }) {
+export function AttentionList({ topics, manifest }: { topics: PipelineItem[]; manifest: PipelineManifest }) {
   if (topics.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-10 text-center">
@@ -21,7 +21,8 @@ export function AttentionList({ topics }: { topics: PipelineItem[] }) {
   return (
     <div className="divide-y divide-stone-100">
       {topics.map((topic) => {
-        const isTopPriority = getPriorityWeight(topic) === 0;
+        const priorityVal = topic.meta[manifest.priority.field] as string | undefined;
+        const isTopPriority = priorityVal === manifest.priority.sortOrder[0];
         return (
           <Link
             key={topic.id}
@@ -40,7 +41,7 @@ export function AttentionList({ topics }: { topics: PipelineItem[] }) {
             )}
             {isTopPriority && topic.qaStatus !== "needs-edits" && (
               <span className="shrink-0 rounded-full bg-red-50 px-2 py-0.5 text-[11px] font-medium text-red-600 ring-1 ring-inset ring-red-100">
-                High
+                {priorityVal}
               </span>
             )}
             {topic.revisionRound && (

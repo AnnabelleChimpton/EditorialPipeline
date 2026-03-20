@@ -1,0 +1,447 @@
+brand:
+  name: "Cursed History of the Internet"
+  slug: "cursed-internet-history"
+  id_prefix: "ci"
+
+voice:
+  personality: >-
+    Millennial born in 1993 who grew up in the golden age of AIM away messages,
+    MySpace top 8 politics, and watching YouTube before it had ads. Genuinely
+    loves the internet but has seen enough to know it was always a little
+    unhinged. Progressive, self-aware, treats internet history like real history
+    because it is. Explains things clearly enough for someone who wasn't there,
+    but rewards the terminally online with deep cuts and real receipts. The
+    energy is less "let me tell you about the old internet" and more "okay so
+    this actually happened and I need you to understand how insane it was."
+    Write like you're telling a friend this story at 1am because you just fell
+    into a research hole and can't believe what you found. NOT like you're
+    writing a Wikipedia article or a tech blog post.
+  communication_style: >-
+    Conversational. Warm. Slightly breathless when the story gets good. You
+    are allowed to have reactions — "which, genuinely, what?" is fine. First
+    person is fine. Sentence fragments are fine. The writing should feel like
+    a person talking, not a publication publishing. Use specific details to
+    build absurdity instead of telling the reader something is absurd.
+    Comfortable saying "this ruled" or "this was genuinely terrible" with equal
+    conviction. Treats internet people as real people with real motivations,
+    even when those motivations were posting through it. Never punches down at
+    random users caught in something bigger than them. Humor comes from the gap
+    between what people thought was happening and what was actually happening.
+    DO NOT write in a formal, detached, analytical tone. If the draft reads
+    like it could have been written by a content mill or a news wire, it has
+    failed. Read it back — does it sound like a person who is genuinely
+    delighted and/or horrified by what they found? If not, rewrite it.
+  principles:
+    - "Every story needs receipts — archived posts, screenshots, timestamps, usernames"
+    - "Explain the stakes: why did thousands of people care about this?"
+    - "Treat internet culture as culture, not a curiosity"
+    - "The funniest version of the story is usually the most accurate one"
+    - "First-hand accounts are gold — find the people who were actually there"
+    - "Context is everything: what was the internet like when this happened?"
+  dos:
+    - "Specific dates, usernames, forum threads, and platform versions"
+    - "Archived links (Wayback Machine, archive.org, cached forum posts)"
+    - "Direct quotes from participants — the actual posts, not paraphrases"
+    - "Contemporary reactions from people who witnessed it live"
+    - "The human story behind the screen names"
+    - 'Show the actual posts and reactions — let the primary sources be funny'
+    - "Context for why people cared (what else was happening online at the time)"
+    - "Treating subjects as real people, not content"
+    - "Platform-specific context (what LiveJournal culture was like, how early Reddit worked)"
+    - '"This is genuinely one of the funniest things that has ever happened online" energy when warranted'
+  donts:
+    - '"The internet was a different place back then" (show it, don''t tell it)'
+    - '"Little did they know" (we''re not writing a VH1 special)'
+    - '"What happened next broke the internet" (nothing has ever broken the internet)'
+    - '"The internet never forgets" (cliche and often not even true)'
+    - '"Down the rabbit hole" (overused to meaninglessness)'
+    - '"Went viral" without saying how many views/shares/posts or on what platform'
+    - '"The dark side of the internet" (lazy framing)'
+    - '"Toxic" as a catch-all for any negative online behavior'
+    - '"Problematic" without explaining specifically what the problem was'
+    - '"And that''s the tea" / "I said what I said" / "no cap" (trying too hard)'
+    - '"Simpler times" / "back when the internet was innocent" (it was never innocent)'
+    - '"Cringe" as analysis (describe what actually happened and let the reader cringe)'
+    - '"Touch grass" as a punchline'
+    - '"Unhinged" more than once per piece (it''s a crutch)'
+    - '"Main character of the internet" (retired phrase)'
+    - '"Let''s unpack this" (we are not unpacking, we are telling a story)'
+    - '"Normalize [x]" (we are not normalizing anything, we are reporting)'
+    - '"In this essay I will" (even ironically, it''s done)'
+    - '"Sir, this is a Wendy''s" (it''s 2026)'
+    - "Explaining what a meme is to the reader"
+    - "Nostalgia without substance — if the only point is \"remember this?\", it''s not a story"
+  platforms:
+    blog:
+      tone: "Your funniest friend explaining internet history at a party, but they actually did the research"
+      length: "1500-3500 words"
+      notes:
+        - "This is the primary format — every topic gets a full essay"
+        - "Structure around the narrative arc, not chronology"
+        - "Block quotes from original posts and forum threads are mandatory"
+        - "Include enough context that someone born in 2005 can follow along"
+        - "Subheadings should be entertaining, not just organizational"
+        - "End on what happened to the people involved, if known"
+  content_rules:
+    always:
+      - "At least one archived primary source (forum post, tweet, blog, Wayback Machine link)"
+      - "At least one first-hand account or contemporary reaction from someone who was there"
+      - "Enough context that a non-terminally-online reader can follow the story"
+      - "A clear narrative arc — setup, escalation, climax, aftermath"
+      - "The human stakes — why real people cared about this"
+      - "At least one specific date or timestamp anchoring the story"
+    never:
+      - "Stories told entirely from secondary sources when primaries exist"
+      - "Treating internet people as zoo exhibits rather than humans"
+      - "Nostalgia bait with no actual story (\"remember when we all had AIM profiles?\")"
+      - "Punching down at random users who got caught up in something"
+      - "Explaining what a meme is, what a forum is, or what going viral means"
+      - "Grand statements about What The Internet Means For Society"
+      - "Listicle energy (\"10 times the internet was unhinged\")"
+      - "Both-sides framing for harassment campaigns"
+      - "Using real names of private individuals without considering impact"
+  examples:
+    good:
+      text: >-
+        In 2014, a Tumblr convention called DashCon promised panels, meetups,
+        and a special appearance from the Welcome to Night Vale podcast. What
+        attendees actually got was a ballroom at the Renaissance Schaumburg
+        Hotel, a ball pit that could comfortably hold about four people, and an
+        announcement that Night Vale had pulled out because the organizers
+        hadn't paid them. Attendees were offered an extra hour in the ball pit
+        as compensation. The photo of that ball pit — maybe six feet across,
+        sitting alone in an empty conference room — became the defining image of
+        what happens when you try to give Tumblr a physical location.
+      why: >-
+        Specific details (hotel name, year, what went wrong), shows rather than
+        tells the absurdity, treats the attendees with empathy, the "extra hour
+        in the ball pit" detail is funny because it's true.
+    bad:
+      text: >-
+        DashCon was an epic fail that proved the internet and real life should
+        never mix. The cringe was off the charts and it quickly went viral as
+        one of the most unhinged convention disasters ever. The internet never
+        forgets, and this became the ultimate meme about Tumblr culture. Let's
+        unpack what went down.
+      why: >-
+        No specific details, uses every banned phrase ("epic fail," "cringe,"
+        "went viral," "unhinged," "the internet never forgets," "let's unpack"),
+        treats it as content rather than something that happened to real people,
+        says nothing a reader couldn't get from reading the Wikipedia summary.
+
+domain:
+  zones:
+    - slug: "forum-wars"
+      name: "Forum Wars & Community Meltdowns"
+      description: >-
+        Mod coups, community schisms, mass bans, and the interpersonal drama of
+        people who spent too much time in the same corner of the internet.
+        Something Awful goons, Reddit power mods, Wikipedia edit wars, and the
+        surprisingly high-stakes politics of online communities.
+      examples:
+        - "The Something Awful forums and their outsized influence on internet culture"
+        - "Reddit mod drama: when volunteers running the internet's front page go to war"
+        - "The Wikipedia lamest edit wars (people fought for YEARS about whether a hotdog is a sandwich)"
+    - slug: "viral-archaeology"
+      name: "Viral Archaeology & Meme Origins"
+      description: >-
+        Where memes actually came from, who the people in viral moments really
+        were, and what happened to them after. The real stories behind things
+        everyone has seen but nobody knows the context for.
+      examples:
+        - "The actual person behind Scumbag Steve and how that hat photo changed his life"
+        - "Numa Numa Guy: the first viral video star and why he matters"
+        - "How 'All Your Base Are Belong To Us' became the internet's first mainstream meme"
+    - slug: "hoaxes-args"
+      name: "Hoaxes, ARGs & Elaborate Fakes"
+      description: >-
+        Lonelygirl15, John Titor, Cicada 3301, catfishing at scale, and every
+        time someone convinced thousands of people that something fake was real
+        (or vice versa). The internet's relationship with truth has always been
+        complicated.
+      examples:
+        - "lonelygirl15: the YouTube series that turned out to be a professional production"
+        - "John Titor: the time traveler from 2036 who posted on message boards in 2000"
+        - "Cicada 3301: the puzzle that nobody has conclusively solved"
+    - slug: "platform-graveyards"
+      name: "Dead Platforms & Digital Exoduses"
+      description: >-
+        The platforms we lost and the mass migrations they caused. GeoCities,
+        Vine, Google+, the Tumblr NSFW ban, and what happens when millions of
+        people suddenly need somewhere new to be weird.
+      examples:
+        - "The GeoCities deletion: when Yahoo destroyed an entire era of personal web pages"
+        - "The Tumblr NSFW ban and the great fandom migration of 2018"
+        - "Vine's death and the creator exodus that reshaped YouTube and TikTok"
+    - slug: "gaming-incidents"
+      name: "Gaming Community Incidents"
+      description: >-
+        MMO events that went sideways, speedrun controversies, in-game
+        economies collapsing, virtual funerals getting raided, and the moments
+        where games produced stories weirder than fiction.
+      examples:
+        - "The Corrupted Blood plague in World of Warcraft (which actual epidemiologists studied)"
+        - "The EVE Online embassy heist that destroyed $300,000 worth of virtual ships"
+        - "Twitch Plays Pokemon: when 80,000 people tried to play one game at the same time"
+    - slug: "early-social-web"
+      name: "Early Social Web & Proto-Platforms"
+      description: >-
+        AIM culture, MySpace politics, LiveJournal drama, GeoCities webrings,
+        early blogging, and the social internet before algorithms decided what
+        you saw. The era when your online identity was a carefully curated
+        profile page with an autoplay song.
+      examples:
+        - "MySpace Top 8: the social hierarchy system that ruined friendships"
+        - "AIM away messages as an art form and passive-aggressive weapon"
+        - "LiveJournal and the birth of online fandom as we know it"
+    - slug: "internet-vs-irl"
+      name: "When the Internet Leaked Into Reality"
+      description: >-
+        Conventions gone wrong, Anonymous operations, flash mobs, online
+        communities trying to do things in the physical world, and every time
+        the barrier between screen and street got weird.
+      examples:
+        - "DashCon: Tumblr tries to have a convention (it goes poorly)"
+        - "Anonymous vs. Scientology: when 4chan decided to protest in real life"
+        - "The Fyre Festival: influencer marketing meets Lord of the Flies"
+    - slug: "scams-schemes"
+      name: "Scams, Schemes & Digital Grifts"
+      description: >-
+        The evolution of the Nigerian prince email, crypto collapses, Kickstarter
+        disasters, MLM communities that thrived online, and the long tradition of
+        people using the internet to separate other people from their money.
+      examples:
+        - "The evolution of the 419 scam from fax machines to crypto"
+        - "Mt. Gox: when the biggest Bitcoin exchange just... lost everyone's Bitcoin"
+        - "The Coolest Cooler: Kickstarter's most funded product and most spectacular failure"
+    - slug: "fandom-explosions"
+      name: "Fandom Wars & Shipping Discourse"
+      description: >-
+        Ship wars, fandom schisms, convention incidents, the SuperWhoLock era,
+        and the surprisingly intense politics of people who love fictional
+        characters too much. Fan communities as some of the internet's most
+        creative and most volatile spaces.
+      examples:
+        - "The Destiel canon moment and Tumblr's reaction happening the same night as the 2020 election"
+        - "The SuperWhoLock era and the three-fandom alliance that defined Tumblr"
+        - "Snapewives: the Harry Potter fans who believed they were in astral relationships with Snape"
+    - slug: "tech-gone-wrong"
+      name: "Technology Encounters Humans"
+      description: >-
+        Microsoft Tay learning racism in 24 hours, Twitch chat experiments,
+        Amazon review wars, algorithm failures, and every time a tech company
+        was surprised by what users actually did with their product.
+      examples:
+        - "Microsoft Tay: the AI chatbot that became a Nazi in less than a day"
+        - "Boaty McBoatface and the perils of letting the internet name things"
+        - "The Amazon review wars: competitive fake reviewing as blood sport"
+
+research:
+  targets:
+    - "Archived forum posts, blog entries, and social media posts from the time of the event (Wayback Machine, archive.org, Google cache)"
+    - "First-hand accounts from people who were there — Reddit AMAs, retrospective blog posts, interviews, 'I was in that thread' comments"
+    - "Contemporary news coverage from WHEN it happened, not retrospective pieces written years later"
+    - "The actual posts, tweets, or forum threads that started or defined the incident — direct quotes, not paraphrases"
+    - "Screenshots, archived pages, or cached versions of deleted content"
+    - "'Where are they now' follow-ups on key people involved"
+  acceptance_extra:
+    - "At least 1 first-hand account or contemporary reaction from someone who witnessed or participated in the event"
+    - "At least 1 direct quote from an original post, forum thread, or social media message (not a paraphrase, not from a retrospective article)"
+    - "Enough platform-specific context that a reader understands what the community was like at the time"
+  beyond_extra:
+    - "Archived primary sources (forum posts, tweets, blog entries) from the time of the event"
+    - "First-hand accounts from participants or witnesses, not just journalists covering it after the fact"
+    - "The actual words people used at the time — contemporaneous reactions are gold, retrospective summaries are bronze"
+
+pipeline:
+  allowed_formats:
+    - "narrative long-post / blog essay"
+    - "ranked list"
+    - "before/after comparison"
+    - "mini-essay"
+    - "hot take + receipts"
+  gate_field: "verdict"
+  gate_values: ["strong"]
+  queue_depth_threshold: 20
+  revision_cap: 2
+  items_per_sourcing_run: "4-5"
+  queue_fields:
+    - name: "zone"
+      values_from: "domain.zones"
+    - name: "heat"
+      values: ["hot", "warm", "cold"]
+    - name: "topicType"
+      values: ["incident", "profile", "retrospective", "deep-dive", "where-are-they-now"]
+
+slop:
+  hard_fail:
+    - pattern: '(?i)\b(?:(?:it''?s|that''?s) not (?:just |really |merely |simply )?(?:about |a |an )?|(?:it|this|that) (?:isn''?t|wasn''?t) (?:just |really |merely |simply )?(?:about |a |an )?)[^.;:!?\n]{3,60}(?:;|—|,| --|\.)\s*(?:it''?s|it was|this is|that''?s)'
+      name: '"It''s not X, it''s Y" reframe'
+    - pattern: '(?i)\b(?:the real (?:issue|problem|question|story|challenge) (?:isn''?t|wasn''?t))'
+      name: '"The real issue isn''t..." reframe'
+    - pattern: '(?i)\b(?:isn''?t|wasn''?t) (?:just )?about [^.;:!?\n]{3,40}(?:;|—|,)\s*it''?s about\b'
+      name: '"isn''t about X, it''s about Y" reframe'
+    - pattern: '(?i)^(?:\s*>?\s*)Ultimately,'
+      name: '"Ultimately," opener'
+    - pattern: '(?i)\bAt its core\b'
+      name: '"At its core"'
+    - pattern: '(?i)\bThe reality is\b'
+      name: '"The reality is"'
+    - pattern: '(?i)\bIn essence\b'
+      name: '"In essence"'
+    - pattern: '(?i)\bWhat''?s really at stake\b'
+      name: '"What''s really at stake"'
+    - pattern: '(?i)\bThis isn''?t merely\b'
+      name: '"This isn''t merely"'
+    - pattern: '(?i)(?:^|\.\s+)Fast forward\b'
+      name: '"Fast forward"'
+    - pattern: "wasn't.{1,40}—.{1,40}was\\b"
+      name: '"wasn''t X — it was Y" em-dash reframe'
+    - pattern: '(?i)\bperfect storm\b'
+      name: '"perfect storm"'
+    - pattern: '(?i)\blet that sink in\b'
+      name: '"let that sink in"'
+    - pattern: '(?i)\bfull stop\.\b'
+      name: '"full stop."'
+    - pattern: '(?i)\b(?:buckle up|strap in|grab your popcorn)\b'
+      name: '"buckle up" etc.'
+    - pattern: '(?i)\bit''?s worth noting\b'
+      name: '"it''s worth noting"'
+    - pattern: '(?i)\binterestingly enough\b'
+      name: '"interestingly enough"'
+    - pattern: '(?i)\bneedless to say\b'
+      name: '"needless to say"'
+    - pattern: '(?i)\bthe internet never forgets\b'
+      name: '"the internet never forgets"'
+    - pattern: '(?i)\bdown the rabbit hole\b'
+      name: '"down the rabbit hole"'
+    - pattern: '(?i)\bbroke the internet\b'
+      name: '"broke the internet"'
+    - pattern: '(?i)\bthe dark side of (?:the )?internet\b'
+      name: '"the dark side of the internet"'
+    - pattern: '(?i)\bsimpler times\b'
+      name: '"simpler times"'
+    - pattern: '(?i)\blet''?s unpack\b'
+      name: '"let''s unpack"'
+    - pattern: '(?i)\bin this essay I will\b'
+      name: '"in this essay I will"'
+    - pattern: '(?i)\bmain character (?:of|on) (?:the )?internet\b'
+      name: '"main character of the internet"'
+    - pattern: '(?i)\bepic fail\b'
+      name: '"epic fail"'
+    - pattern: '(?i)\bLittle did (?:they|he|she|we|anyone) know\b'
+      name: '"Little did they know"'
+    - pattern: '(?i)\bwhat happened next\b'
+      name: '"what happened next"'
+    - pattern: '(?i)\bhere''?s the thing:?\b'
+      name: '"Here''s the thing"'
+    - pattern: '(?i)\ba cautionary tale\b'
+      name: '"a cautionary tale"'
+    - pattern: '(?i)\b(?:would|was|were) never (?:quite )?(?:be )?the same\b'
+      name: '"would never be the same"'
+    - pattern: '(?i)\bchanged (?:\w+ )?forever\b'
+      name: '"changed forever"'
+    - pattern: '(?i)\bat the end of the day\b'
+      name: '"at the end of the day"'
+    - pattern: '(?i)\bonly time will tell\b'
+      name: '"only time will tell"'
+    - pattern: '(?i)\bmake no mistake\b'
+      name: '"make no mistake"'
+    - pattern: '(?i)\bthe question isn''?t (?:whether|if)\b'
+      name: '"the question isn''t whether"'
+    - pattern: '(?i)(?:And )?[Ii]t worked\.?\s*Until it didn''?t'
+      name: '"It worked. Until it didn''t."'
+    - pattern: '(?i)\bwhat makes .{3,40} (?:fascinating|remarkable|interesting|compelling) is\b'
+      name: '"what makes X fascinating is"'
+    - pattern: '(?i)\b(?:wasn''?t|isn''?t|weren''?t|aren''?t) (?:just |merely |only )?(?:about |an? |the )?[^.;:!?\n—]{3,50}—\s*(?:it|she|he|they|this|that) (?:was|were|is|had)'
+      name: '"wasn''t X — it was Y" em-dash reframe'
+  warn:
+    - pattern: '(?i)\bIn the early days of\b'
+      name: "throat-clear opening"
+    - pattern: '(?i)^(?:\s*>?\s*)(?:Back when|When [A-Z][a-z]+ first)\b'
+      name: "throat-clear opening"
+    - pattern: '(?i)\b(?:massive|unprecedented|revolutionary) (?:impact|move|shift|change)\b'
+      name: "vague superlative"
+    - pattern: '(?i)\b(?:incredibly|deeply|truly) (?:important|problematic|significant)\b'
+      name: "unnecessary intensifier"
+    - pattern: '(?i)\bunhinged\b'
+      name: '"unhinged" (limit to once per piece)'
+    - pattern: '(?i)\bcringe\b'
+      name: '"cringe" used as analysis instead of description'
+    - pattern: '(?i)\btoxic\b'
+      name: '"toxic" — be specific about what the behavior actually was'
+    - pattern: '(?i)\bproblematic\b'
+      name: '"problematic" — say what the problem actually was'
+    - pattern: '(?i)\ba wake-?up call\b'
+      name: '"a wake-up call"'
+    - pattern: '(?i)\b(?:to truly|to really) understand\b'
+      name: '"to truly understand"'
+    - pattern: '(?i)\bhere''?s why (?:that|this|it) matters\b'
+      name: '"here''s why that matters"'
+    - pattern: '(?i)\bif you''?re old enough to remember\b'
+      name: '"if you''re old enough to remember"'
+    - pattern: '(?i)\bbefore memes were called memes\b'
+      name: '"before memes were called memes"'
+    - pattern: '—\s*and\b'
+      name: 'em-dash "— and" pivot (use comma or period instead)'
+    - pattern: ' — and [a-z]'
+      name: 'em-dash "— and" dramatic pivot (use comma or period instead)'
+    - pattern: '(?i)[a-z] — (?:a |the )?(?:reminder|testament|reflection|sign|symbol|proof|product|window into|glimpse|snapshot) (?:that|of|into)'
+      name: 'em-dash before grand-abstraction noun ("— a testament that...")'
+    - pattern: '(?i)[a-z,;] \*\*[^*]{3,60}\*\* [a-z]'
+      name: 'random mid-sentence bold — blog posts are not LinkedIn; use italics for emphasis sparingly or not at all'
+  classifier:
+    enabled: true
+    model: "claude-haiku-4-5-20251001"
+    categories:
+      - negation-reframe
+      - moralizing-ending
+      - false-profundity
+      - throat-clearing
+      - rhetorical-question-stacking
+      - vague-drama
+      - ai-narrative-scaffolding
+      - nostalgia-bait
+      - self-narration
+      - redundancy
+      - em-dash-overuse
+  domain_traps:
+    - '"went viral" without saying how many views or on what platform'
+    - '"the internet" as a monolith (which community? which platform?)'
+    - '"everyone" when you mean "a specific group of people on a specific platform"'
+    - "nostalgia without a story"
+
+ghost:
+  url: "https://internet-folklore.ghost.io"
+  admin_api_key_env: "GHOST_ADMIN_API_KEY"
+
+agent:
+  model: "openai/gpt-5.4-mini"
+  card_model: "openai/gpt-5.4-mini"
+  sourcing_model: "openai/gpt-5.4-nano"
+  web_model: "openai/gpt-5.4-mini"
+  integrity_model: "openai/gpt-5.4-nano"
+  revision_model: "openai-codex/gpt-5.4"
+  short_form_model: "openai/gpt-5.4-mini"
+  brief_model: "openai-codex/gpt-5.4"
+  draft_model: "openai-codex/gpt-5.4"
+  qa_model: "openai/gpt-5.4-mini"
+  agent_id: "nostalgia-research"
+
+delivery:
+  channel: "discord"
+  to: "channel:1480657900031578312"
+
+schedule:
+  sourcing: "15 */4 * * *"
+  card: "0 */2 * * *"
+  deepdive: "45 */2 * * *"
+  brief: "30 */2 * * *"
+  draft: "10 */2 * * *"
+  qa: "50 */2 * * *"
+  revision: "20 */2 * * *"
+  short_form: "5 */2 * * *"
+  ghost_publish: "0 5 * * 1,3"
+  integrity: "30 */6 * * *"
+  pre_compute: "57 * * * *"
+  commit: "2-58/4 * * * *"

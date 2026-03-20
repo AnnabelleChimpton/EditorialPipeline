@@ -1,0 +1,41 @@
+# Sourcing cron workflow (zone-aware adaptive queue refill)
+
+1. Read `REFERENCE/.state/queue-depth.json` — this is your queue depth.
+2. **HARD STOP — If queue depth >= {queue_depth_threshold}**: report "queue healthy (N queued)" and STOP immediately. Do not source, do not search, do not append. This is a non-negotiable gate — no exceptions, even if zones are underrepresented.
+3. Read `REFERENCE/domain-zones.md` — this defines the {zone_count} thematic zones the brand covers.
+4. Read `REFERENCE/topic-queue.jsonl` and `REFERENCE/dossier-index.jsonl` — note every existing id, topic, theme, and category (including done topics). Combined, this is your dedup set.
+5. **Category audit**: tabulate how many existing topics (queue + index) fall into each zone from domain-zones.md. Identify the 2-3 most underrepresented zones.
+6. Construct 1-2 web searches targeted at the underrepresented zones. Queries should be 3-6 plain keywords — do NOT wrap terms in quotes. Max 2 web searches total.
+7. Pick {items_per_sourcing_run} candidates with a clear hook and tension. Candidates MUST come from at least 2 different zones.
+8. If search fails, STOP and report sourcing failed. Do NOT invent topics.
+9. Filter out candidates that overlap with existing entries — match on theme, not just exact name. When in doubt, skip it.
+10. For each candidate ({items_per_sourcing_run} max):
+    a. Append topic JSON as a single line to `REFERENCE/.state/stage-queue.jsonl` with fields: {queue_fields_list}.
+    b. One `- [ ] id — topic` line to `topics/inbox.md`.
+11. Return a Discord-friendly summary in 6 bullets or fewer. Include current queue depth and which zones were targeted.
+
+### Sourcing field rules
+
+- **Quote escaping**: If any text value contains double quotes, you MUST escape them as `\"` or replace with single quotes.
+{queue_field_rules}
+
+## Sourcing guard rails
+
+- **Queue depth >= {queue_depth_threshold} is a HARD STOP.** Do not source. Do not search. Report and exit.
+- {items_per_sourcing_run} topics max per run. No duplicates. Append-only. No rewrites.
+- Topics must spread across at least 2 different zones per run.
+- Do NOT produce dossiers, cards, or research.
+- Queue depth check comes FIRST — skip all work if queue is healthy.
+
+## Web search coordination
+
+All lanes that use `web_search` MUST follow this protocol:
+
+**Before searching:**
+1. Read `REFERENCE/.search-cooldown.json`. If `cooldownUntil` is in the future, do NOT search.
+
+**After each successful search:**
+Write `{{"lastSearchAt": "<ISO>", "lane": "sourcing"}}` to `REFERENCE/.search-cooldown.json`.
+
+**On 429 (rate limit) error:**
+Write `{{"lastSearchAt": "<ISO>", "lane": "sourcing", "cooldownUntil": "<ISO + 5 min>"}}` to `REFERENCE/.search-cooldown.json`. Stop ALL web searches for this run.

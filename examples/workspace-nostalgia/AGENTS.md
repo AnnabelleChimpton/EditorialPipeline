@@ -13,7 +13,7 @@ Research nostalgic internet culture topics and produce well-sourced topic cards 
 5b. If web research fails 3 times, update the topic's `status` in `REFERENCE/topic-queue.jsonl` from `"queued"` to `"blocked"` and add a `"blockedReason"` field (e.g., `"3 fetch failures — 403/CAPTCHA on source sites"`). Report the blocker and stop.
 6. Produce a topic card following the template and rubric. Verdict: strong / maybe / weak.
 7. Save the card to `REFERENCE/cards/<id>-<slug>.md`.
-8. Append exactly one JSON line to `REFERENCE/dossier-index.jsonl` with: id, topic, verdict, sources count, card path, parentEvent (if present), timestamp.
+8. Append exactly one JSON line to `REFERENCE/dossier-index.jsonl` with: id, topic, verdict, sources count, card path, parentEvent (if present), timestamp. **(Read the full file first, then write back all existing lines plus the new one — see "How to append to JSONL files" below.)**
 9. Update the topic's `status` field in `REFERENCE/topic-queue.jsonl` from `"queued"` to `"done"`.
 10. Mark the matching line in `topics/inbox.md` as `[x]`.
 11. Optionally append one brief line to `LOG.md`.
@@ -28,10 +28,43 @@ Research nostalgic internet culture topics and produce well-sourced topic cards 
 - Prefer contemporaneous, primary, or archival sources over retrospective summaries.
 - Follow the anti-slop rules in `REFERENCE/first-pass-dossier-rubric.md`.
 
+## Sourcing cron workflow (zone-aware adaptive queue refill)
+
+1. Read `REFERENCE/topic-queue.jsonl`. Count entries where `status` is `"queued"`. This is your queue depth.
+2. **If queue depth >= 30**: report "queue healthy (N queued)" and STOP. Do not source.
+3. Read `REFERENCE/domain-zones.md` — this defines the 12 thematic zones the brand covers.
+4. Read `REFERENCE/dossier-index.jsonl` — note every existing id, topic, theme, and category (including done topics). Combined with topic-queue.jsonl, this is your dedup set.
+5. **Category audit**: tabulate how many existing topics (queue + index) fall into each zone from domain-zones.md. Identify the 2-3 most underrepresented zones.
+6. Construct 1-2 web searches targeted at the underrepresented zones. Use zone-specific search terms (e.g., "early 2000s mall culture hot topic nostalgia" or "millennial moral panic columbine marilyn manson") instead of a single generic query. Max 2 web searches total.
+7. Pick 4-5 candidates with a clear hook and tension (humor, scandal, status, fandom, cultural friction). Candidates MUST come from at least 2 different zones.
+8. If search fails, STOP and report sourcing failed. Do NOT invent topics.
+9. Filter out candidates that overlap with existing entries — match on theme, not just exact name. When in doubt, skip it.
+10. For each candidate (4-5 max), append:
+    a. One JSONL line to `REFERENCE/topic-queue.jsonl` with fields: `id`, `topic`, `hook`, `category`, `zone`, `era`, `eraBucket`, `priority`, `sourceability`, `status` `"queued"`, `notes`, `dossier` `null`.
+    b. One `- [ ] id — topic` line to `topics/inbox.md`.
+11. Return a Discord-friendly summary in 6 bullets or fewer. Include current queue depth and which zones were targeted.
+
+### Sourcing field rules
+
+- **`zone`**: Must be one of the 12 slugs from `REFERENCE/domain-zones.md` — pick the single best match:
+  `mall-retail`, `physical-media`, `tv-movies`, `fashion-aesthetic`, `music`, `internet-platforms`, `gaming`, `teen-social`, `food-products`, `moral-panics`, `advertising-media`, `college`
+- **`eraBucket`**: Derive from the `era` start year:
+  - `late-90s` — start year ≤ 1999
+  - `early-00s` — start year 2000–2002
+  - `mid-00s` — start year 2003–2005
+  - `late-00s` — start year 2006+
+
+## Sourcing guard rails
+
+- 4-5 topics max per run. No duplicates. Append-only. No rewrites.
+- Topics must spread across at least 2 different zones per run.
+- Do NOT produce dossiers, cards, or research.
+- Queue depth check comes FIRST — skip all work if queue is healthy.
+
 ## Deep-dive cron workflow (one topic per run)
 
 1. Read `REFERENCE/dossier-index.jsonl`.
-2. Find the first entry where `verdict` is `"strong"` and `dossier` is `null` or absent.
+2. Find the first entry where `verdict` is `"strong"` (and no `type` field — i.e., a first-pass card entry) whose `id` does NOT already have a `type: "deepdive"` entry elsewhere in the index.
 3. If no eligible topic exists, report "no strong topics awaiting deep-dive" and stop.
 4. Read the first-pass card at the path in the entry's `card` field. If the file doesn't exist, skip and report.
 5. Read `REFERENCE/topic-dossier-template.md` and `REFERENCE/deep-dive-rubric.md`.
@@ -39,7 +72,7 @@ Research nostalgic internet culture topics and produce well-sourced topic cards 
 7. Do 2-3 web searches targeting: contemporaneous sources, forum/blog archives, specific people/incidents, absurd details, pull-quotable material. Supplement with `web_fetch` on URLs already cited in the first-pass card — fetching a known URL does NOT count toward the search budget. After each web search, fully process results before the next search. If a search returns a rate-limit error (429 / "too many requests"), do NOT count it as a failed fetch — instead, do non-search work (draft a dossier section, re-read a source, organize notes) then retry. Only count non-429 failures toward the 3-failure abort limit.
 8. Produce a full dossier using the template format. All sections must be filled. Follow the deep-dive rubric.
 9. Derive the output filename from the entry's `card` path — take its filename and replace `REFERENCE/cards/` with `REFERENCE/dossiers/`. Save the dossier there.
-10. Append one JSON line to `REFERENCE/dossier-index.jsonl` with the original entry's fields plus `"type": "deepdive"` and `"dossier"` set to the exact path you saved to.
+10. Append one JSON line to `REFERENCE/dossier-index.jsonl` with the original entry's fields plus `"type": "deepdive"` and `"dossier"` set to the exact path you saved to. **(Read the full file first, then write back all existing lines plus the new one — see "How to append to JSONL files" below.)**
 11. Optionally append one brief line to `LOG.md`.
 12. Return a Discord-friendly summary of new findings in 6 bullets or fewer.
 
@@ -55,7 +88,7 @@ Research nostalgic internet culture topics and produce well-sourced topic cards 
 7. Evaluate the dossier material and decide: what format fits this topic best? What platform? What's the hook?
 8. Produce a post brief following the template. Every section must be filled.
 9. Derive the output filename from the entry's `dossier` path — take its filename and replace `REFERENCE/dossiers/` with `REFERENCE/briefs/`. Save the brief there.
-10. Append one JSON line to `REFERENCE/dossier-index.jsonl` with the original entry's `id`, `topic`, plus `"type": "brief"` and `"brief"` set to the exact path you saved to.
+10. Append one JSON line to `REFERENCE/dossier-index.jsonl` with the original entry's `id`, `topic`, plus `"type": "brief"` and `"brief"` set to the exact path you saved to. **(Read the full file first, then write back all existing lines plus the new one — see "How to append to JSONL files" below.)**
 11. Optionally append one brief line to `LOG.md`.
 12. Return a Discord-friendly summary in 6 bullets or fewer: topic, recommended format, platform, hook, and key angle.
 
@@ -82,7 +115,7 @@ Research nostalgic internet culture topics and produce well-sourced topic cards 
 8. Write the post following the brief's direction: use its format, open with its hook (adapted, not pasted), stay in its tone register, hit its key moments, exclude what it says to leave out, honor its anti-slop flags.
 9. Fill out the compliance notes section honestly — don't just mark everything "yes." If the brief flagged a staleness window, populate the draft's "Live data cautions" section from it.
 10. Derive the output filename from the brief entry's `brief` path — take its filename and replace `REFERENCE/briefs/` with `REFERENCE/drafts/`. Save the draft there.
-11. Append one JSON line to `REFERENCE/dossier-index.jsonl` with the entry's `id`, `topic`, plus `"type": "draft"` and `"draft"` set to the exact path you saved to.
+11. Append one JSON line to `REFERENCE/dossier-index.jsonl` with the entry's `id`, `topic`, plus `"type": "draft"` and `"draft"` set to the exact path you saved to. **(Read the full file first, then write back all existing lines plus the new one — see "How to append to JSONL files" below.)**
 12. Optionally append one brief line to `LOG.md`.
 13. Return a Discord-friendly summary in 6 bullets or fewer: topic, format used, platform, opening hook, and word/tweet count.
 
@@ -109,7 +142,7 @@ Research nostalgic internet culture topics and produce well-sourced topic cards 
 9. Produce a QA report following the format in the rubric. Be specific — quote the draft when flagging issues.
 10. If the draft is genuinely good, say so. Don't manufacture issues.
 11. Derive the output filename from the entry's `draft` path — take its filename and replace `REFERENCE/drafts/` with `REFERENCE/qa/`. Save the QA report there.
-12. Append one JSON line to `REFERENCE/dossier-index.jsonl` with the entry's `id`, `topic`, plus `"type": "qa"`, `"qa"` set to the exact path you saved to, and `"qaStatus": "approved"` or `"qaStatus": "needs-edits"`.
+12. Append one JSON line to `REFERENCE/dossier-index.jsonl` with the entry's `id`, `topic`, plus `"type": "qa"`, `"qa"` set to the exact path you saved to, and `"qaStatus": "approved"` or `"qaStatus": "needs-edits"`. **(Read the full file first, then write back all existing lines plus the new one — see "How to append to JSONL files" below.)**
 13. Optionally append one brief line to `LOG.md`.
 14. Return a Discord-friendly summary in 6 bullets or fewer: topic, QA status, key issues found (if any), and what works.
 
@@ -144,7 +177,7 @@ Research nostalgic internet culture topics and produce well-sourced topic cards 
 12. Preserve everything the QA report praised or did not flag. Do not rewrite approved sections.
 13. Fill out the revision notes section: what changed, what was preserved, which QA issues were addressed.
 14. Derive the base filename from the QA'd draft's path — strip `.md` and append `-r<N>.md` (where N is the revision round). Save there.
-15. Append one JSON line to `REFERENCE/dossier-index.jsonl` with the entry's `id`, `topic`, plus `"type": "revision"`, `"draft"` set to the exact path you saved to, and `"revisionRound": <N>`.
+15. Append one JSON line to `REFERENCE/dossier-index.jsonl` with the entry's `id`, `topic`, plus `"type": "revision"`, `"draft"` set to the exact path you saved to, and `"revisionRound": <N>`. **(Read the full file first, then write back all existing lines plus the new one — see "How to append to JSONL files" below.)**
 16. Optionally append one brief line to `LOG.md`.
 17. Return a Discord-friendly summary in 6 bullets or fewer: topic, revision round, number of QA issues addressed, and key changes made.
 
@@ -195,7 +228,7 @@ Example: `Reformat vce-006 as a thread`
 10. Self-check before saving: thesis present, sources cited (no bare homepage URLs), anti-slop honored, hook works for target format, length matches format expectations, no voice rule violations.
 11. Save to `REFERENCE/drafts/<id>-<slug>-<format-short>.md`.
     Format short codes: `thread`, `longpost`, `list`, `hottake`, `carousel`, `beforeafter`, `miniessay`.
-12. Append one JSON line to `REFERENCE/dossier-index.jsonl`: `{"id":"<id>","type":"draft","format":"<format-short>","draft":"REFERENCE/drafts/<id>-<slug>-<format-short>.md","note":"reformat from <original-format>","timestamp":"..."}`.
+12. Append one JSON line to `REFERENCE/dossier-index.jsonl`: `{"id":"<id>","type":"draft","format":"<format-short>","draft":"REFERENCE/drafts/<id>-<slug>-<format-short>.md","note":"reformat from <original-format>","timestamp":"..."}`. **(Read the full file first, then write back all existing lines plus the new one — see "How to append to JSONL files" below.)**
 13. Optionally append one brief line to `LOG.md`.
 14. Return a Discord-friendly summary: topic, original format, new format, opening hook, and word/tweet count.
 
@@ -220,6 +253,22 @@ Example: `Reformat vce-006 as a thread`
 6. Save report to `reports/YYYY-MM-DD-topic-slug.md`.
 7. Mark topic `[x]` in inbox.
 
+## CRITICAL: How to append to JSONL files
+
+**The Write tool OVERWRITES the entire file.** If you use Write to "append" a line, you will destroy all existing entries. This has caused data loss before.
+
+**Every time you need to append a line to `dossier-index.jsonl` (or any JSONL file), you MUST follow this exact procedure:**
+
+1. **Read** the entire file first (e.g., read `REFERENCE/dossier-index.jsonl`).
+2. **Construct** the new JSON line.
+3. **Write** back the file with ALL existing lines preserved, plus your new line at the end.
+
+Never use Write with only the new line. The written content must include every existing line unchanged, followed by your new entry as the last line.
+
+**No smart quotes in JSON.** Never use curly/smart quotes (`"` `"` `'` `'`) in JSONL values — they are not valid JSON and will crash the frontend parser. Use straight quotes (`"` or `'`) only.
+
+The same rule applies to any JSONL file you modify (e.g., `topic-queue.jsonl` when updating status): read the full file, modify the relevant line, write back the complete file.
+
 ## Filename derivation rule
 
 All lanes that create files (deep-dive, brief, draft, QA, revision) MUST derive their output filename from the upstream entry's file path by swapping the directory prefix — never re-derive from the topic string. This prevents slug mismatches between the saved file and the index entry.
@@ -239,3 +288,4 @@ When appending to the index, the file path in the JSON entry MUST be copied from
 - Do not modify completed topics.
 - Cite URLs.
 - If no topics remain, write to `logs/idle.log` and exit.
+- When calling `web_search`, pass ONLY the `query` parameter. Do not pass `search_lang`, `ui_lang`, `language`, `country`, or `count` — these cause Brave API errors.

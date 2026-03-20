@@ -1,32 +1,35 @@
 # AUTOMATION LANES
 
+> All lanes use pre-computed state files and staging. Agents never read or write `dossier-index.jsonl` or `topic-queue.jsonl` directly — `pipeline-cron.py` pre-computes work items into `.state/next-*.json`, and `pipeline-commit.py` flushes staged entries into the main files.
+
 ## Lane 1 — Topic sourcing (every 4 hours at :15)
 
 ### Goal
-Check queue depth and source new topics only when the queue is running low (under 30 queued topics). Uses domain-zone exploration to ensure diverse topic coverage.
+Check queue depth and source new topics only when the queue is running low. Uses domain-zone exploration to ensure diverse topic coverage.
 
 ### Adaptive behavior
-- Read `topic-queue.jsonl` and count entries with `status: "queued"`
-- If queue depth >= 30: report "queue healthy" and stop immediately (no web searches)
-- If queue depth < 30: perform a category audit and source 4-5 new [YOUR DOMAIN] topics via zone-targeted web search
+- Read `REFERENCE/.state/queue-depth.json` for pre-computed queue depth
+- If queue depth >= threshold: report "queue healthy" and stop immediately (no web searches)
+- If queue depth < threshold: perform a category audit and source 4-5 new topics via zone-targeted web search
 
 ### Category audit
 - Read `REFERENCE/domain-zones.md` for the full list of thematic zones
 - Tabulate existing topics per zone from `topic-queue.jsonl` + `dossier-index.jsonl`
 - Identify 2-3 most underrepresented zones
-- Construct search queries targeted at those zones instead of using a single generic query
+- Construct search queries targeted at those zones
 
 ### Read set
-- `REFERENCE/topic-queue.jsonl`
+- `REFERENCE/.state/queue-depth.json`
+- `REFERENCE/topic-queue.jsonl` (for dedup)
 - `REFERENCE/dossier-index.jsonl` (for dedup)
 - `REFERENCE/domain-zones.md` (for zone-targeted search)
 
 ### Write set
-- append 4-5 lines to `REFERENCE/topic-queue.jsonl`
-- append 4-5 lines to `topics/inbox.md`
+- Append 4-5 lines to `REFERENCE/.state/stage-queue.jsonl`
+- Append 4-5 lines to `topics/inbox.md`
 
 ### Research scope
-- Max 2 web searches per run (only if queue depth < 30)
+- Max 2 web searches per run (only if queue depth < threshold)
 - Topics must spread across at least 2 different zones per run
 
 ### Failure rule
@@ -34,237 +37,257 @@ Check queue depth and source new topics only when the queue is running low (unde
 
 ---
 
-## Lane 2 — First-pass topic cards (every 2 hours)
+## Lane 2 — First-pass topic cards (every 2 hours at :00)
 
 ### Goal
 Convert one queued topic into one lightweight research card with an explicit verdict.
 
 ### Read set
-- `PROJECT.md`
-- `REFERENCE/topic-queue.jsonl`
+- `REFERENCE/.state/next-card.json` (pre-computed work item)
 - `REFERENCE/topic-card-template.md`
 - `REFERENCE/first-pass-dossier-rubric.md`
 
 ### Write set
-- one new topic card file under `REFERENCE/cards/`
-- append one line to `REFERENCE/dossier-index.jsonl`
-- optionally append one brief line to `LOG.md`
-
-### Do not update in cron
-- `NEXT.md`
-- human-facing queue prose unless explicitly asked
-- deepening docs
+- One new topic card file under `REFERENCE/cards/`
+- Stage index entry via `python3 REFERENCE/pipeline-tools.py stage --type card ...`
+- Append status update to `REFERENCE/.state/stage-status.jsonl`
+- Optionally append one brief line to `LOG.md`
 
 ### Failure rule
 If a required file update fails twice, stop and report the blocker instead of retry-looping.
 
 ---
 
-## Lane 3 — Deep-dive dossiers (hourly, :45)
+## Lane 3 — Deep-dive dossiers (every 2 hours at :45)
 
 ### Goal
-Take one "strong" first-pass card and produce a full article-ready dossier with richer sourcing, pull quotes, and post angles.
+Take one first-pass card that passed the gate and produce a full article-ready dossier with richer sourcing, pull quotes, and post angles.
 
 ### Read set
-- `REFERENCE/dossier-index.jsonl`
-- the first-pass card file referenced by the index entry
+- `REFERENCE/.state/next-deepdive.json` (pre-computed work item with `card` path)
+- The first-pass card file referenced by the state entry
 - `REFERENCE/topic-dossier-template.md`
 - `REFERENCE/deep-dive-rubric.md`
 
 ### Write set
-- one new dossier file under `REFERENCE/dossiers/`
-- append one line to `REFERENCE/dossier-index.jsonl` (type: deepdive) or update existing entry with `dossier` field
-- optionally append one brief line to `LOG.md`
+- One new dossier file under `REFERENCE/dossiers/`
+- Stage index entry via `python3 REFERENCE/pipeline-tools.py stage --type deepdive ...`
+- Optionally append one brief line to `LOG.md`
 
 ### Selection rule
-Pick the first entry in `dossier-index.jsonl` where `verdict` is `"strong"` and `dossier` is `null` or absent.
+Pre-computed by `pipeline-cron.py`: first entry in index where gate criteria are met and no deepdive entry exists for that ID.
 
 ### Filename derivation
-Derive the dossier filename from the entry's `card` path by swapping `REFERENCE/cards/` → `REFERENCE/dossiers/`. Never re-derive from the topic string. Use the exact saved path in the index entry.
+Derive the dossier filename from the entry's `card` path by swapping `REFERENCE/cards/` to `REFERENCE/dossiers/`. Never re-derive from the topic string.
 
 ### Research scope
-- 2-3 web searches per topic (bounded); supplement with `web_fetch` on URLs already cited in the first-pass card (these don't count toward the search budget)
-- After each web search, fully process results before the next search
-- If a search returns a rate-limit error (429), do NOT count it as a failed fetch — do non-search work then retry
-- Target contemporaneous/primary sources, forum archives, specific people/incidents, pull quotes
-- Follow leads from the card's **Upgrade path** and **Open question** sections
-
-### Do not update in cron
-- `NEXT.md`
-- first-pass cards (the dossier is a separate, richer artifact)
-- human-facing queue prose unless explicitly asked
+- 2-3 web searches per topic; supplement with `web_fetch` on URLs already cited in the card (don't count toward search budget)
+- After each search, fully process results before the next
+- If a 429 rate-limit error occurs, write the cooldown file and complete with sources already gathered
+- Source verification step (`pipeline-tools.py verify-sources`) is mandatory
 
 ### Failure rule
-- If the first-pass card file doesn't exist at the path in the index, skip and report.
-- If web research fails 3 times (excluding 429 rate-limit errors), stop and report the blocker.
-- If a file update fails twice, stop and report instead of retry-looping.
+- If the first-pass card file doesn't exist, skip and report.
+- If web research fails 3 times (excluding 429 rate-limit errors), stop and report.
+- If a file update fails twice, stop and report.
 
 ---
 
-## Lane 4 — Post briefs (hourly, :30)
+## Lane 4 — Post briefs (every 2 hours at :30)
 
 ### Goal
-Take one completed deep-dive dossier and produce a post brief: format recommendation, platform pick, hook, angle, tone, key moments, and editorial cuts — everything a copywriting pass needs to produce a non-AI-sounding post.
+Take one completed deep-dive dossier and produce a post brief: format recommendation, platform pick, hook, angle, tone, key moments, and editorial cuts.
 
 ### Read set
-- `REFERENCE/dossier-index.jsonl`
-- the deep-dive dossier file referenced by the index entry
-- the first-pass card file referenced by the index entry
+- `REFERENCE/.state/next-brief.json` (pre-computed with `_resolvedPaths`)
+- The dossier and card files via `_resolvedPaths`
 - `REFERENCE/post-brief-template.md`
 - `REFERENCE/post-brief-rubric.md`
 
 ### Write set
-- one new brief file under `REFERENCE/briefs/`
-- append one line to `REFERENCE/dossier-index.jsonl` (type: brief)
-- optionally append one brief line to `LOG.md`
+- One new brief file under `REFERENCE/briefs/`
+- Stage index entry via `python3 REFERENCE/pipeline-tools.py stage --type brief ...`
+- Optionally append one brief line to `LOG.md`
 
 ### Selection rule
-Pick the first entry in `dossier-index.jsonl` where `type` is `"deepdive"` and no brief file exists at `REFERENCE/briefs/<id>-<slug>.md`.
+Pre-computed by `pipeline-cron.py`: first deepdive entry whose ID has no brief entry.
 
 ### Filename derivation
-Derive the brief filename from the entry's `dossier` path by swapping `REFERENCE/dossiers/` → `REFERENCE/briefs/`. Never re-derive from the topic string. Use the exact saved path in the index entry.
+Derive from `_resolvedPaths.dossier` by swapping `REFERENCE/dossiers/` to `REFERENCE/briefs/`.
 
 ### Research scope
-- NONE. This lane does no web searches. All material comes from existing dossiers and cards.
-
-### Do not update in cron
-- `NEXT.md`
-- first-pass cards or deep-dive dossiers
-- human-facing queue prose unless explicitly asked
+- NONE. All material comes from existing dossiers and cards.
 
 ### Failure rule
-- If the dossier file doesn't exist at the indexed path, skip and report.
-- If a file write fails twice, stop and report instead of retry-looping.
+- If the dossier file doesn't exist, skip and report.
+- If a file write fails twice, stop and report.
 
 ---
 
-## Lane 5 — Post drafts (hourly, :10)
+## Lane 5 — Post drafts (every 2 hours at :10)
 
 ### Goal
-Take one completed post brief and its dossier and produce a ready-to-review post draft that follows the brief's creative direction and reads like a human wrote it.
+Take one completed post brief and its dossier and produce a ready-to-review post draft that follows the brief's creative direction.
 
 ### Read set
-- `REFERENCE/dossier-index.jsonl`
-- the post brief file referenced by the index entry
-- the deep-dive dossier file (looked up via the same `id`'s deepdive entry)
+- `REFERENCE/.state/next-draft.json` (pre-computed with `_resolvedPaths`)
+- The brief and dossier files via `_resolvedPaths`
 - `REFERENCE/post-draft-template.md`
 - `REFERENCE/post-draft-rubric.md`
-- `REFERENCE/brand-config.md` (optional — if it exists, read for voice guidelines)
+- `REFERENCE/brand-config.md` (if it exists)
 
 ### Write set
-- one new draft file under `REFERENCE/drafts/`
-- append one line to `REFERENCE/dossier-index.jsonl` (type: draft)
-- optionally append one brief line to `LOG.md`
+- One new draft file under `REFERENCE/drafts/`
+- Stage index entry via `python3 REFERENCE/pipeline-tools.py stage --type draft ...`
+- Optionally append one brief line to `LOG.md`
 
-### Selection rule
-Pick the first entry in `dossier-index.jsonl` where `type` is `"brief"` and no draft file exists at `REFERENCE/drafts/<id>-<slug>.md`.
-
-### Filename derivation
-Derive the draft filename from the brief entry's `brief` path by swapping `REFERENCE/briefs/` → `REFERENCE/drafts/`. Never re-derive from the topic string. Use the exact saved path in the index entry.
+### Slop check
+Mandatory after writing: run `python3 REFERENCE/pipeline-tools.py slop-check <draft-path>`. Fix flagged patterns and re-run (max 3 cycles).
 
 ### Research scope
-- NONE. This lane does no web searches. All material comes from existing dossiers and briefs.
-
-### Do not update in cron
-- `NEXT.md`
-- first-pass cards, deep-dive dossiers, or post briefs
-- human-facing queue prose unless explicitly asked
+- NONE. All material comes from existing dossiers and briefs.
 
 ### Failure rule
-- If the brief or dossier file doesn't exist at the indexed path, skip and report.
-- If a file write fails twice, stop and report instead of retry-looping.
+- If the brief or dossier file doesn't exist, skip and report.
+- If a file write fails twice, stop and report.
 
 ---
 
-## Lane 6 — QA review (hourly, :50)
+## Lane 5b — Short-form post (every 2 hours at :05)
 
 ### Goal
-Read one completed draft against its post brief. Produce a QA report that either approves the draft or lists specific, actionable fixes with quotes from the draft.
+Take one completed draft and produce a short-form companion post (social-length summary, teaser, or standalone micro-post).
 
 ### Read set
-- `REFERENCE/dossier-index.jsonl`
-- the draft file referenced by the index entry
-- the post brief file (looked up via the same `id`'s brief entry)
+- `REFERENCE/.state/next-short-form.json` (pre-computed with `_resolvedPaths`)
+- The draft and brief files via `_resolvedPaths`
+- `REFERENCE/short-form-template.md`
+- `REFERENCE/short-form-rubric.md`
+
+### Write set
+- One new short-form post under `REFERENCE/short-form/`
+- Stage index entry via `python3 REFERENCE/pipeline-tools.py stage --type short-form ...`
+
+### Slop check
+Mandatory after writing.
+
+### Research scope
+- NONE.
+
+---
+
+## Lane 6 — QA review (hourly at :50)
+
+### Goal
+Read one completed draft against its post brief. Produce a QA report that either approves the draft or lists specific, actionable fixes with quotes.
+
+### Read set
+- `REFERENCE/.state/next-qa.json` (pre-computed with `_resolvedPaths`)
+- The draft and brief files via `_resolvedPaths`
 - `REFERENCE/qa-rubric.md`
-- `REFERENCE/brand-config.md` (optional — if it exists, read for voice guidelines)
+- `REFERENCE/brand-config.md` (if it exists)
 
 ### Write set
-- one new QA report file under `REFERENCE/qa/`
-- append one line to `REFERENCE/dossier-index.jsonl` (type: qa, qaStatus: approved/needs-edits)
-- optionally append one brief line to `LOG.md`
+- One new QA report file under `REFERENCE/qa/`
+- Stage index entry via `python3 REFERENCE/pipeline-tools.py stage --type qa ...`
+- Optionally append one brief line to `LOG.md`
 
 ### Selection rule
-Pick the first entry in `dossier-index.jsonl` where `type` is `"draft"` or `"revision"` and no QA report exists at `REFERENCE/qa/<id>-<slug>.md` (for originals) or `REFERENCE/qa/<id>-<slug>-r<N>.md` (for revisions). This ensures revision drafts get QA-reviewed, not just originals.
+Pre-computed: first draft or revision entry whose ID has no QA entry for that version.
 
 ### Filename derivation
-Derive the QA report filename from the entry's `draft` path by swapping `REFERENCE/drafts/` → `REFERENCE/qa/`. Never re-derive from the topic string. Use the exact saved path in the index entry.
+Derive from the draft path by swapping `REFERENCE/drafts/` to `REFERENCE/qa/`.
 
 ### Research scope
-- NONE. This lane does no web searches.
-
-### Do not update in cron
-- `NEXT.md`
-- drafts, briefs, dossiers, or cards — QA only creates reports
-- human-facing queue prose unless explicitly asked
+- NONE.
 
 ### Failure rule
-- If the draft or brief file doesn't exist at the indexed path, skip and report.
-- If a file write fails twice, stop and report instead of retry-looping.
+- If the draft or brief file doesn't exist, skip and report.
+- If a file write fails twice, stop and report.
+- Be honest: if the draft is good, approve it. Don't invent problems.
 
 ---
 
-## Lane 7 — Revision (hourly, :20)
+## Lane 7 — Revision (hourly at :20)
 
 ### Goal
-Take one draft that received `qaStatus: "needs-edits"` and produce a revised version that addresses every issue in the QA report, without introducing new problems or degrading what already worked.
+Take one draft that received `qaStatus: "needs-edits"` and produce a revised version that addresses every QA issue without introducing new problems.
 
 ### Read set
-- `REFERENCE/dossier-index.jsonl`
-- the QA report that flagged the draft (looked up via the same `id`'s qa entry)
-- the draft file (original or previous revision)
-- the post brief (looked up via the same `id`'s brief entry)
-- the deep-dive dossier (looked up via the same `id`'s deepdive entry)
+- `REFERENCE/.state/next-revision.json` (pre-computed with `_resolvedPaths`)
+- The QA report, draft, brief, and dossier files via `_resolvedPaths`
 - `REFERENCE/post-revision-rubric.md`
 - `REFERENCE/post-draft-rubric.md` (for voice rules)
-- `REFERENCE/brand-config.md` (optional — if it exists, read for voice guidelines)
+- `REFERENCE/brand-config.md` (if it exists)
 
 ### Write set
-- one new revised draft file under `REFERENCE/drafts/` (named `<id>-<slug>-r1.md` or `-r2.md`)
-- append one line to `REFERENCE/dossier-index.jsonl` (type: revision)
-- optionally append one brief line to `LOG.md`
+- One new revised draft file under `REFERENCE/drafts/` (named `-r1.md` or `-r2.md`)
+- Stage index entry via `python3 REFERENCE/pipeline-tools.py stage --type revision ...`
+- Optionally append one brief line to `LOG.md`
+
+### Revision workflow
+Uses **copy-then-edit** pattern: copy the original draft to the revision filename, then make targeted edits. Never regenerate the full file (avoids OpenAI content safety crashes on sensitive quoted material).
 
 ### Filename derivation
-Derive the base filename from the QA'd draft's path — strip `.md` and append `-r<N>.md`. Never re-derive from the topic string. Use the exact saved path in the index entry.
+Strip `.md` from the QA'd draft's path and append `-r<N>.md`.
 
 ### Selection rule
-Pick the first entry in `dossier-index.jsonl` where `type` is `"qa"` and `qaStatus` is `"needs-edits"`, and whose `id` does NOT already have a revision draft for that round. Determine the revision round: if the QA report was for the original draft, produce `-r1`; if for `-r1`, produce `-r2`. If the QA report is for `-r2`, skip — this topic has hit the revision cap and needs human review.
+Pre-computed: first QA entry with `qaStatus: "needs-edits"` whose ID has no revision for that round. Max 2 rounds — after `-r2` fails QA, flag for human review.
+
+### Slop check
+Mandatory after writing.
 
 ### Research scope
-- NONE. This lane does no web searches. All material comes from existing drafts, QA reports, briefs, and dossiers.
-
-### Do not update in cron
-- `NEXT.md`
-- original draft files, QA reports, briefs, dossiers, or cards — this lane only creates revision drafts and appends to the index
-- human-facing queue prose unless explicitly asked
+- NONE.
 
 ### Failure rule
-- If the draft, QA report, or brief file doesn't exist at the indexed path, skip and report.
-- If this is a `-r2` QA failure, do NOT create `-r3`. Append an index entry with `revisionStatus: "human-review"` and stop.
-- If a file write fails twice, stop and report instead of retry-looping.
+- If the draft, QA report, or brief file doesn't exist, skip and report.
+- If this is a `-r2` QA failure, do NOT create `-r3`. Flag for human review.
+- If a file write fails twice, stop and report.
 
 ---
 
-## Index-Integrity Check (every 6 hours, :30)
+## Index-Integrity Check (every 6 hours at :35)
 
 ### Goal
-Scan `dossier-index.jsonl` and verify that every referenced file path actually exists on disk. Report broken paths so they can be fixed before downstream lanes stall.
+Scan `dossier-index.jsonl` and `topic-queue.jsonl` and verify that every referenced file path actually exists on disk. Report broken paths so they can be fixed.
 
 ### Read set
 - `REFERENCE/dossier-index.jsonl`
-- Every file path referenced in the index (card, dossier, brief, draft, qa fields)
+- `REFERENCE/topic-queue.jsonl`
+- Every file path referenced in the index
 
 ### Write set
 - NONE. This is a read-only check.
 
 ### Failure rule
 - Report broken paths clearly. Do NOT fix or modify any files.
+
+---
+
+## Infrastructure: Pre-compute (hourly at :57)
+
+### Goal
+Run `pipeline-cron.py` to compute the `.state/next-*.json` files that agent lanes read their work items from. Also computes `queue-depth.json` for the sourcing gate.
+
+### Behavior
+- Reads `dossier-index.jsonl` and `topic-queue.jsonl`
+- Determines the next eligible work item for each lane
+- Writes `next-card.json`, `next-deepdive.json`, `next-brief.json`, `next-draft.json`, `next-qa.json`, `next-revision.json`, `next-short-form.json`
+- Resolves upstream file paths into `_resolvedPaths`
+- Tracks stale items (repeated selection without progress) and applies exponential backoff
+
+---
+
+## Infrastructure: Commit (every 4 minutes)
+
+### Goal
+Run `pipeline-commit.py` to flush staged changes from `.state/stage-*.jsonl` into the main index files.
+
+### Behavior
+- Reads `stage-append.jsonl` → validates and appends to `dossier-index.jsonl`
+- Reads `stage-status.jsonl` → updates topic status in `topic-queue.jsonl`
+- Reads `stage-queue.jsonl` → appends new topics to `topic-queue.jsonl`
+- Validates all entries before committing
+- Runs slop-check on committed draft/revision/short-form files
+- Clears staging files after successful commit

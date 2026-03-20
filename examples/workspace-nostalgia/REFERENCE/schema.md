@@ -14,7 +14,9 @@ One line per candidate topic. Written by Lane 1 (sourcing); `status` updated by 
 | `topic`       | string   | Human-readable topic title                          |
 | `hook`        | string   | One-sentence pitch explaining why this topic works   |
 | `category`    | string   | Slash-separated tags (e.g. `"social internet / identity / platform behavior"`) |
+| `zone`        | string   | Domain zone slug from `domain-zones.md`. One of: `mall-retail`, `physical-media`, `tv-movies`, `fashion-aesthetic`, `music`, `internet-platforms`, `gaming`, `teen-social`, `food-products`, `moral-panics`, `advertising-media`, `college`. Used as the filterable category on the board. |
 | `era`         | string   | Approximate year range (e.g. `"2004-2008"`)         |
+| `eraBucket`   | string   | Broad era grouping derived from the `era` start year. One of: `late-90s` (≤1999), `early-00s` (2000–2002), `mid-00s` (2003–2005), `late-00s` (2006+). Used as the filterable era on the board. |
 | `priority`    | string   | `"high"` or `"medium"`                              |
 | `sourceability` | string | `"high"` or `"medium"` — how findable sources are   |
 | `status`      | string   | `"queued"` (awaiting first-pass) or `"done"` (card written) |
@@ -25,7 +27,7 @@ One line per candidate topic. Written by Lane 1 (sourcing); `status` updated by 
 ### Example
 
 ```json
-{"id":"vce-011","topic":"Napster, Limewire, and the moral panic of music piracy","hook":"A generation learned to steal music and felt righteous about it...","category":"music / piracy / digital rights / moral panic","era":"1999-2006","priority":"high","sourceability":"high","status":"queued","notes":"Massive cultural footprint...","dossier":null}
+{"id":"vce-011","topic":"Napster, Limewire, and the moral panic of music piracy","hook":"A generation learned to steal music and felt righteous about it...","category":"music / piracy / digital rights / moral panic","zone":"music","era":"1999-2006","eraBucket":"late-90s","priority":"high","sourceability":"high","status":"queued","notes":"Massive cultural footprint...","dossier":null}
 ```
 
 ---
@@ -123,7 +125,7 @@ Written when a revised draft is produced from a QA report with `needs-edits` sta
 Each lane finds its next work item by scanning `dossier-index.jsonl`:
 
 - **Lane 2**: picks the first `topic-queue.jsonl` entry with `status: "queued"` whose `id` is not in `dossier-index.jsonl`.
-- **Lane 3**: picks the first entry with `verdict: "strong"` and no `dossier` field (or `dossier: null`).
+- **Lane 3**: picks the first first-pass entry (no `type` field) with `verdict: "strong"` whose `id` does not already have a `type: "deepdive"` entry in the index.
 - **Lane 4**: picks the first `type: "deepdive"` entry whose `id` has no brief file on disk.
 - **Lane 5**: picks the first `type: "brief"` entry whose `id` has no draft file on disk.
 - **Lane 6**: picks the first `type: "draft"` or `"revision"` entry whose `id` has no QA report on disk for that draft version. This covers both original drafts and revision drafts (`-r1`, `-r2`).

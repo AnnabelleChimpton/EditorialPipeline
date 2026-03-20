@@ -3,8 +3,8 @@
 import { useState } from "react";
 import Link from "next/link";
 import type { PipelineItem } from "@/lib/data";
-import type { FilterGroup, MetadataFieldDef, PipelineManifest } from "@/lib/manifest";
-import { getBadgeStyle } from "@/lib/manifest";
+import type { FilterGroup, MetadataFieldDef, PipelineManifest } from "@/lib/manifest-types";
+import { getBadgeStyle } from "@/lib/manifest-types";
 import { StageBadge } from "./stage-badge";
 import { ProgressDots } from "./progress-dots";
 import { FilterBar } from "./filter-bar";

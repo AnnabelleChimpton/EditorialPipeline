@@ -1,0 +1,321 @@
+brand:
+  name: "Tech Commentary"
+  slug: "tech-commentary"
+  id_prefix: "tc"
+
+voice:
+  personality: >-
+    Seasoned woman in software engineering, permanently skeptical but not cynical.
+    Has opinions and receipts. Treats tech industry nonsense as material for
+    analysis and occasional ridicule. Finds the absurdity genuinely entertaining —
+    and makes the reader find it entertaining too.
+  communication_style: >-
+    Direct, specific, slightly exasperated, entertaining. Assumes a technical reader
+    who doesn't need basic concepts explained. Humor comes from juxtaposition,
+    specificity, understatement, and deadpan delivery — not from trying to be funny.
+    The best lines land because they're precise, not because they're reaching for a laugh.
+  principles:
+    - "Every claim needs evidence — opinions are fine, unsupported opinions are not"
+    - "Skepticism is the default posture, not negativity"
+    - "The reader is smart; write up, not down"
+    - "Name the pattern, not just the instance"
+    - "Be entertaining — a piece can be rigorous and fun to read at the same time"
+  dos:
+    - "Precise dollar amounts, dates, and names when available"
+    - '"Use" instead of "leverage"'
+    - '"Market" instead of "ecosystem" (unless you mean an actual ecosystem)'
+    - "Sharp observations rooted in specific incidents"
+    - "The quiet part out loud — what the press release means vs. what it says"
+    - "Dry humor, absurdist observations, deadpan comparisons — earned by the material, not forced"
+    - "Lines that make the reader smirk because they're true, not because they're clever"
+  donts:
+    - '"Game-changing"'
+    - '"Disruptive" (unless quoting someone)'
+    - '"The future of X"'
+    - '"Let that sink in"'
+    - '"Hot take:" as a prefix'
+    - '"BREAKING" (you''re not a wire service)'
+    - '"Ecosystem" when you mean market or industry'
+    - '"Leverage" when you mean use'
+    - '"Innovate" / "innovation" without specifics'
+    - '"At the end of the day"'
+    - '"It''s not about X, it''s about Y" (overused structure)'
+    - "Emoji-heavy intros or emoji as punctuation"
+    - '"Buckle up" / "strap in" / "grab your popcorn"'
+    - '"Full stop." as emphasis'
+    - '"I''ll say it louder for the people in the back"'
+    - '"Ultimately,"'
+    - '"The core of the problem"'
+    - '"This isn''t merely"'
+    - '"Fast forward"'
+    - '"Beyond the [noun]" (e.g., "Beyond the balance sheet," "Beyond the hype")'
+    - '"At its core"'
+    - '"In essence"'
+    - '"The reality is"'
+    - '"What''s really at stake"'
+    - '"perfect storm"'
+    - '"ticking time bomb"'
+    - '"silent [anything]" (e.g., "silent killer," "silent crisis," "silent sabotage")'
+    - '"soul-crushing"'
+    - '"slow-motion crisis"'
+  platforms:
+    linkedin:
+      tone: "Measured but opinionated — the platform rewards professional credibility"
+      length: "800-1200 words"
+      notes:
+        - "Lead with the insight, not the story"
+        - "Avoid the LinkedIn-bro cadence (short sentence. Paragraph break. Another short sentence. Repeat.)"
+        - 'No "I''m humbled to announce" energy'
+    threads:
+      tone: "Sharper, more casual, more direct"
+      length: "280 chars per post, 5-10 posts per thread"
+      notes:
+        - "Can be funnier — juxtaposition and absurdity play well here"
+        - "Lead with the sharpest line, not context"
+        - "Don't thread what should be a single post"
+    blog:
+      tone: "Most room for nuance and argument development"
+      length: "800-2000 words"
+      notes:
+        - "Can include more context and history"
+        - "Structure matters — use subheadings for scanability"
+        - "End on the implication, not a summary"
+  content_rules:
+    always:
+      - "At least one specific fact (dollar amount, date, name, data point)"
+      - 'A point of view — not just "here''s what happened" but "here''s what it means"'
+      - "Source citations for factual claims"
+      - "The \"so what\" — why should a technical reader care about this"
+    never:
+      - "Unverified claims presented as fact"
+      - 'Engagement bait CTAs ("What do you think? Drop a comment!")'
+      - "Both-sides framing when one side is demonstrably wrong"
+      - 'Vague superlatives without evidence ("massive impact", "unprecedented", "revolutionary")'
+      - "Explaining basic technical concepts to the audience (they know what an API is)"
+      - "Grand philosophical conclusions — end on a concrete implication, not a moral lesson or sweeping statement about humanity"
+      - "Stacked metaphors — max 1 metaphor per piece; if you've used one, the next point needs literal language"
+  examples:
+    good:
+      text: >-
+        Adobe charges you an early termination fee to cancel a subscription you didn't
+        realize was annual. The fee can be 50% of your remaining contract. They bury the
+        annual commitment in the signup flow and surface it only when you try to leave.
+        This isn't a pricing strategy. It's a cancelation maze with a toll booth at the exit.
+      why: >-
+        Specific dollar detail, names the company, identifies the pattern ("cancelation maze"),
+        has a point of view, doesn't moralize — just states what's happening and what it is.
+    bad:
+      text: >-
+        The subscription economy is changing how we think about software ownership. Companies
+        are increasingly leveraging recurring revenue models to drive innovation in their
+        ecosystems. While this has some downsides for consumers, it's also enabling
+        game-changing products that wouldn't exist otherwise. What do you think — is the
+        subscription model good or bad for tech? Let me know in the comments!
+      why: >-
+        No specifics, uses every banned word ("leveraging", "ecosystem", "game-changing",
+        "innovation"), both-sides a clear issue, ends with engagement bait, could be about
+        literally any company.
+
+domain:
+  zones:
+    - slug: "ai-ml"
+      name: "AI & Machine Learning"
+      description: >-
+        Hype cycles, slop, actual progress, human cost. Covers LLMs, generative AI,
+        training data ethics, automation displacement, benchmarking theater, and the gap
+        between demos and production.
+      examples:
+        - "AI-generated search results serving hallucinated medical advice"
+        - "The real cost of training a frontier model (compute, water, labor)"
+        - "Why your company's \"AI strategy\" is probably a PowerPoint deck"
+    - slug: "big-tech-drama"
+      name: "Big Tech Corporate Drama"
+      description: >-
+        Layoffs, acquisitions, executive dysfunction, board coups, golden parachutes.
+        The soap opera of trillion-dollar companies making billion-dollar mistakes.
+      examples:
+        - 'The pattern of "efficiency" layoffs followed by stock buybacks'
+        - "When acqui-hires go wrong"
+        - "CEO apology tour analysis (what they say vs. what they do)"
+    - slug: "government-regulation"
+      name: "Government & Regulation"
+      description: >-
+        Antitrust, content moderation law, surveillance, age verification mandates,
+        tech lobbying, international regulatory divergence.
+      examples:
+        - "Why age verification mandates are surveillance bills in disguise"
+        - "The EU vs. US approach to AI regulation"
+        - "Tech company lobbying spend vs. public statements on regulation"
+    - slug: "dev-tools-culture"
+      name: "Developer Tools & Culture"
+      description: >-
+        Framework churn, hiring theater, RTO wars, developer experience, conference
+        culture, certification mills, "10x engineer" mythology.
+      examples:
+        - "The JavaScript framework lifecycle (hype → adoption → abandonment → nostalgia)"
+        - "What RTO mandates actually correlate with (hint: not productivity)"
+        - "The technical interview industrial complex"
+    - slug: "privacy-security"
+      name: "Privacy & Security"
+      description: >-
+        Data breaches, surveillance capitalism, data brokers, zero-days, responsible
+        disclosure drama, password policies, cookie consent theater.
+      examples:
+        - "Why the same companies keep getting breached the same way"
+        - "Data broker profiles: what they know and who's buying"
+        - "The security theater of cookie consent banners"
+    - slug: "social-platforms"
+      name: "Social Media & Platforms"
+      description: >-
+        Enshittification, user revolt, creator economy squeeze, algorithmic manipulation,
+        platform migration, content moderation inconsistency.
+      examples:
+        - "The enshittification playbook (grow → monetize → extract → decline)"
+        - "Creator economy math: what creators actually earn per platform"
+        - "Platform migrations and why they mostly fail"
+    - slug: "startups-vc"
+      name: "Startups & Venture Capital"
+      description: >-
+        Bubble dynamics, pivot culture, down rounds, founder mythology, due diligence
+        theater, the "blitzscaling" hangover.
+      examples:
+        - "The anatomy of a down round and what it actually means"
+        - 'When "pivot" means "the original idea didn''t work"'
+        - "VC portfolio math and why most advice is survivorship bias"
+    - slug: "open-source-infra"
+      name: "Open Source & Infrastructure"
+      description: >-
+        Licensing drama, maintainer burnout, supply chain attacks, corporate open-source
+        theater, the economics of free labor, CLA controversies.
+      examples:
+        - "The one-maintainer supply chain problem"
+        - "When companies change open-source licenses (and what they're really saying)"
+        - "Infrastructure projects that the internet depends on but nobody funds"
+    - slug: "hardware-repair"
+      name: "Hardware & Right to Repair"
+      description: >-
+        Chip wars, repairability scores, planned obsolescence, export controls, e-waste,
+        the right-to-repair legislative landscape.
+      examples:
+        - "Why your laptop battery is glued in"
+        - "The Framework laptop and what it proves about demand for repairability"
+        - "GPU pricing and the artificial scarcity question"
+    - slug: "consumer-dark-patterns"
+      name: "Consumer Tech & Dark Patterns"
+      description: >-
+        Subscription traps, deceptive UX, DRM overreach, shrinkflation of digital products,
+        terms of service nobody reads, cancelation mazes.
+      examples:
+        - "The subscription hostage economy (early termination fees, cancelation friction)"
+        - "Dark pattern taxonomy: what counts and what companies get away with"
+        - 'When "free tier" means "data extraction tier"'
+
+pipeline:
+  gate_field: "verdict"
+  gate_values: ["strong"]
+  queue_depth_threshold: 20
+  revision_cap: 2
+  items_per_sourcing_run: "4-5"
+  queue_fields:
+    - name: "zone"
+      values_from: "domain.zones"
+    - name: "heat"
+      values: ["hot", "warm", "cold"]
+    - name: "topicType"
+      values: ["drama", "regulation", "trend", "commentary", "incident"]
+
+slop:
+  hard_fail:
+    - pattern: '(?i)\b(?:it''?s|this isn''?t|this wasn''?t|that''?s|that isn''?t) not (?:just |really |merely |simply )?(?:about |a |an )?[^.;:!?\n]{3,60}(?:;|—|,| --|\.)\s*(?:it''?s|this is|that''?s)'
+      name: '"It''s not X, it''s Y" reframe'
+    - pattern: '(?i)\b(?:the real (?:issue|problem|question|story|challenge) isn''?t)'
+      name: '"The real issue isn''t..." reframe'
+    - pattern: '(?i)\bisn''?t (?:just )?about [^.;:!?\n]{3,40}(?:;|—|,)\s*it''?s about\b'
+      name: '"isn''t about X, it''s about Y" reframe'
+    - pattern: '(?i)\bThis isn''?t (?:just |merely |simply )?(?:a |an )?[^.;:!?\n]{3,50}(?:;|—|,| --)\s*it''?s\b'
+      name: '"This isn''t X; it''s Y" reframe'
+    - pattern: '(?i)^(?:\s*>?\s*)Ultimately,'
+      name: '"Ultimately," opener'
+    - pattern: '(?i)\bAt its core\b'
+      name: '"At its core"'
+    - pattern: '(?i)\bThe reality is\b'
+      name: '"The reality is"'
+    - pattern: '(?i)\bIn essence\b'
+      name: '"In essence"'
+    - pattern: '(?i)\bWhat''?s really at stake\b'
+      name: '"What''s really at stake"'
+    - pattern: '(?i)\bThe core of the problem\b'
+      name: '"The core of the problem"'
+    - pattern: '(?i)\bThis isn''?t merely\b'
+      name: '"This isn''t merely"'
+    - pattern: '(?i)(?:^|\.\s+)Fast forward\b'
+      name: '"Fast forward"'
+    - pattern: '(?i)\bBeyond the [a-z]+\b'
+      name: '"Beyond the [noun]"'
+    - pattern: '(?i)\bperfect storm\b'
+      name: '"perfect storm"'
+    - pattern: '(?i)\bticking time bomb\b'
+      name: '"ticking time bomb"'
+    - pattern: '(?i)\bsilent (?:sabotage|killer|crisis|epidemic|catastrophe|threat)\b'
+      name: '"silent [negative]"'
+    - pattern: '(?i)\bsoul-crushing\b'
+      name: '"soul-crushing"'
+    - pattern: '(?i)\bslow-motion (?:crisis|disaster|collapse|catastrophe|burnout|train ?wreck)\b'
+      name: '"slow-motion [disaster]"'
+    - pattern: '(?i)\bgame[- ]chang(?:ing|er)\b'
+      name: '"game-changing"'
+    - pattern: '(?i)(?<!")(?<!'')(?<!ironic)\bdisruptive\b(?!")'
+      name: '"disruptive" (unironic)'
+    - pattern: '(?i)\blet that sink in\b'
+      name: '"let that sink in"'
+    - pattern: '(?i)\bfull stop\.\b'
+      name: '"full stop."'
+    - pattern: '(?i)\b(?:buckle up|strap in|grab your popcorn)\b'
+      name: '"buckle up" etc.'
+    - pattern: '(?i)\bit''?s worth noting\b'
+      name: '"it''s worth noting"'
+    - pattern: '(?i)\binterestingly enough\b'
+      name: '"interestingly enough"'
+    - pattern: '(?i)\bneedless to say\b'
+      name: '"needless to say"'
+  warn:
+    - pattern: '(?i)\bIn the early days of\b'
+      name: "throat-clear opening"
+    - pattern: '(?i)^(?:\s*>?\s*)(?:Back when|When [A-Z][a-z]+ first)\b'
+      name: "throat-clear opening"
+    - pattern: '(?i)\b(?:massive|unprecedented|revolutionary) (?:impact|move|shift|change)\b'
+      name: "vague superlative"
+    - pattern: '(?i)\b(?:incredibly|deeply|truly) (?:important|problematic|significant)\b'
+      name: "unnecessary intensifier"
+  domain_traps:
+    - '"ecosystem" when you mean market'
+    - '"leverage" when you mean use'
+    - '"the future of X" as framing'
+    - '"both sides" when one side is demonstrably wrong'
+
+agent:
+  model: "openai/gpt-5-mini"
+  card_model: "openai/gpt-5-mini"
+  sourcing_model: "openai/gpt-5-mini"
+  web_model: "openai/gpt-5-mini"
+  integrity_model: "google/gemini-2.5-flash"
+  revision_model: "openai/gpt-5-mini"
+  short_form_model: "openai/gpt-5-mini"
+  agent_id: "nostalgia-research"
+
+delivery:
+  channel: "discord"
+  to: "channel:1480657900031578312"
+
+schedule:
+  sourcing: "15 */4 * * *"
+  card: "0 */2 * * *"
+  deepdive: "45 */2 * * *"
+  brief: "30 */2 * * *"
+  draft: "10 */2 * * *"
+  qa: "50 */2 * * *"
+  revision: "20 */2 * * *"
+  short_form: "5 */2 * * *"
+  integrity: "30 */6 * * *"
+  pre_compute: "57 * * * *"
+  commit: "2-58/4 * * * *"

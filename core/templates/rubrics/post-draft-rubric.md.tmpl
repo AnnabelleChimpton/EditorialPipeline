@@ -1,0 +1,111 @@
+# POST DRAFT RUBRIC
+
+This rubric is for Lane 5 — the copywriting pass that converts a post brief + dossier into a ready-to-review draft.
+
+## Goal
+Produce one post draft that follows the brief's creative direction and reads like a human wrote it. The draft should be ready for a human to review, lightly edit, and publish — not a rough outline that needs rewriting.
+
+## Minimum acceptance bar
+A post draft is acceptable only if it:
+- Uses the format specified in the brief (thread, narrative, list, etc.)
+- Opens with the hook from the brief (adapted, not pasted verbatim — the brief gives direction, not final copy)
+- Stays in the tone register the brief specified
+- Hits all key moments the brief identified (3-5 specific facts/quotes/incidents)
+- Excludes what the brief said to leave out
+- Cites the source anchors from the brief
+- Falls within the brief's estimated length (±20%)
+- Fills out the compliance notes section honestly
+
+## Voice rules
+
+### Universal AI tells (apply to all domains)
+The draft must NOT:
+- Open with a topic-setting throat-clear ("In the early days of...", "When [thing] first appeared...", "It all started when...")
+- Address the reader as "you" more than twice (exception: threads where direct address is the format)
+- Use listicle filler transitions ("Next up...", "But wait, there's more...", "And finally...")
+- Hedge with "it's worth noting that" or "interestingly enough"
+- End with a generic call-to-action ("What do you think? Let us know in the comments!")
+- Use em-dashes (—). They are an obvious AI tell. Use commas, periods, colons, or semicolons instead. Maximum: 1 per article, and only if no alternative punctuation works. The slop-check will hard-fail any draft with more than 1 em-dash. IMPORTANT: when replacing an em-dash between two independent clauses, use a period or semicolon, NEVER a comma. A comma between two independent clauses is a comma splice and reads worse than the em-dash.
+- Stack rhetorical questions
+- Use the "It's not X, it's Y" reframe structure (e.g., "This wasn't about..., it was about...", "The real issue isn't... — it's...", "isn't X, it's Y") — find a different construction
+- Use transitional filler phrases: "Ultimately," "At its core," "The reality is," "In essence," "What's really at stake," "The core of the problem" — cut them and start with the actual point
+- Narrate your own rhetorical moves ("That matters because...", "That distinction is important:", "This is significant:", "The key takeaway here is"). Make the point directly and let the reader judge its importance.
+- Use triple parallel constructions ("how X happened, how Y felt, and how Z responded"). Pick the one or two elements that matter most. Tidy three-part lists are an AI tell.
+
+### Domain-specific voice traps ({brand_name})
+The draft must NOT:
+{domain_voice_traps}
+
+The draft SHOULD:
+- Sound like a specific person with opinions and receipts, not a content mill
+- Let facts, dollar amounts, and quotes do the heavy lifting — show, don't summarize
+- Use the dossier's pull quotes and specific incidents as anchors
+- Have a point of view, not just information
+- End with something that resonates, not a prompt for engagement
+- Name the pattern, not just the instance
+- Be entertaining — the piece should have at least 2-3 lines that make the reader smirk. If every sentence is neutral-informative, the piece is too flat. Humor comes from juxtaposition, understatement, and the absurdity of the facts themselves — not from jokes, puns, or mugging for the audience. A deadpan observation about what a company actually did is funnier than a quip about it.
+
+## Editorial quality rules
+
+### 1. Concreteness gate
+Every paragraph must contain at least one concrete element: a name, a number, a date, a quote, a specific incident, or a described action. Paragraphs that are pure commentary or abstract reflection get cut or merged into a paragraph that has concrete anchoring.
+
+### 2. Metaphor limit
+Maximum 1 metaphor per article. If you use a metaphor, commit to it briefly and move on — no extending, mixing, or stacking. Remove dramatic compound metaphors entirely ("silent sabotage," "ticking time bomb," "slow-motion crisis"). If the piece already has a metaphor and you're tempted to add another, use literal language instead.
+
+### 3. Statistics interpretation
+Every number, percentage, or data point in the draft must be followed by a sentence explaining why it matters. A stat without context is padding. Bad: "67% of developers report burnout." Good: "67% of developers report burnout — that's not a morale problem, it's a retention cost that shows up in the six-figure price of replacing a senior engineer."
+
+### 4. No formulaic structure
+Do not follow the hook → context → dilemma → solution → conclusion template. Structure should follow the argument. If you can see the five-paragraph essay skeleton, restructure. The piece should feel like it's going somewhere unpredictable, not filling in a template.
+
+### 5. Concrete over abstract
+Replace generalized claims with specific incidents from the dossier. Bad: "Companies routinely underinvest in maintenance." Good: "When Knight Capital's untested code went live in 2012, it burned through $440 million in 45 minutes." If the dossier doesn't have a specific example to support a claim, cut the claim.
+
+### 6. Tight language
+Short sentences. Cut unnecessary adjectives ("incredibly important" → "important"; "deeply problematic" → "problematic" or just state the problem). Remove filler words ("actually," "really," "just," "quite," "very"). If a sentence works without a word, the word shouldn't be there.
+
+### 7. Endings
+End on a concrete implication, what happens next, who pays the cost, what this means for a specific group. Do not end on a philosophical statement, a moral lesson, or a sweeping claim about the human condition. Do not end on a summary paragraph that restates what the article already covered.
+- Bad ending: "Perhaps the real question isn't about technology at all, it's about what kind of future we're willing to accept."
+- Bad ending: a final paragraph that re-lists the key events from earlier paragraphs
+- Good ending: "The bill comes due when the next team inherits the codebase and discovers that nobody wrote the tests."
+
+### 8. No redundancy
+Every paragraph must earn its place by adding new information or a new angle. If a fact, incident, or example already appeared in an earlier paragraph, do not repeat it. If a later paragraph restates the same points in slightly different words, cut it entirely. Before saving, re-read the draft and ask: does this paragraph contain anything the reader doesn't already know from the paragraphs above it? If not, delete it.
+
+## Brand voice
+If `REFERENCE/brand-config.md` exists, the draft must also conform to its voice guidelines, avoid-list, and platform-specific rules. Brand voice overrides generic voice rules where they conflict.
+
+## Format-specific guidance
+
+### Narrative long-post / blog essay (400-800 words)
+- Needs an arc: setup → tension → payoff (or: thesis → evidence → turn)
+- One idea per paragraph, short paragraphs
+- Pull quotes break up the wall of text
+- End on an image, a line, or a turn — not a summary
+
+### Ranked list (5-10 items)
+- Items should escalate (most absurd last, or most surprising last)
+- Each item needs a specific detail, not just a name
+- Brief commentary per item, not equal-length paragraphs
+- The ranking itself should imply a point of view
+
+### Hot take + receipts (200-400 words)
+- Lead with the take — sharp, declarative, slightly provocative
+- Follow immediately with evidence
+- 2-3 specific receipts (quotes, dates, dollar amounts, incidents)
+- End on the implication, not the take restated
+
+## Pre-save slop check (MANDATORY)
+
+Before saving the draft, run:
+```
+python3 REFERENCE/pipeline-tools.py slop-check <your-draft-file>
+```
+If the result is `FAIL`, fix every flagged pattern before saving. This catches the most common AI-isms mechanically — do not rely on self-review alone.
+
+## What this lane does NOT do
+- No web searches — all material comes from the dossier and brief
+- No modifications to existing files (cards, dossiers, briefs, index) — this lane only creates drafts and appends to the index
+- No publishing — drafts go to `REFERENCE/drafts/` for human review

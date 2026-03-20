@@ -1,0 +1,28 @@
+# Post-draft cron workflow (one topic per run)
+
+1. Read `REFERENCE/.state/next-draft.json` — if the content is `"NONE"`, report "no briefs awaiting draft" and stop.
+2. The result includes `_resolvedPaths` with pre-resolved file paths. Read the post brief from `_resolvedPaths.brief`. If the file doesn't exist, skip and report. Check the brief's **Pipeline recommendation**: if the recommendation is `card-only` or `synthesize-into:<id>`, skip this topic (no draft produced) and report the recommendation. Only proceed if the recommendation is `full-draft` or absent.
+3. Read the deep-dive dossier from `_resolvedPaths.dossier`.
+3b. **Synthesis read:** Check the index for entries whose brief contains `pipelineSkip: "synthesize-into:<this-topic's-id>"`. For each such entry, read its card and/or dossier to gather key facts that should be incorporated into this draft.
+4. Read `REFERENCE/post-draft-template.md` and `REFERENCE/post-draft-rubric.md`.
+5. If `REFERENCE/brand-config.md` exists, read it for voice guidelines.
+6. Write the post following the brief's direction: use its format, open with its hook (adapted, not pasted), stay in its tone register, hit its key moments, exclude what it says to leave out, honor its anti-slop flags.
+7. Fill out the compliance notes section honestly — don't just mark everything "yes." If the brief flagged a staleness window, populate the draft's "Live data cautions" section from it.
+8. Derive the output filename from the brief entry's `brief` path — take its filename and replace `REFERENCE/briefs/` with `REFERENCE/drafts/`. Save the draft there.
+9. **Slop check:** Run `python3 REFERENCE/pipeline-tools.py slop-check --no-llm <draft-path>`. This runs regex patterns only (no LLM classifier — QA handles that). If it returns FAIL, fix every flagged pattern and re-run. Maximum 3 fix-and-rerun cycles. If the check still fails after 3 cycles, save the draft as-is, append the index entry, and include the remaining failures in the summary. Do not loop beyond 3 cycles.
+10. Stage the index entry using the `stage` command (do NOT write to stage-append.jsonl directly):
+    ```
+    python3 REFERENCE/pipeline-tools.py stage --type draft --id <ID> --topic "<TITLE>" --draft "<PATH>"
+    ```
+11. Return a Discord-friendly summary in 6 bullets or fewer: topic, format used, platform, opening hook, and word/tweet count.
+
+## Guard rails
+
+- FORMAT CONSTRAINT: Only use formats listed in the brand config's allowed_formats. For this brand: {allowed_formats}. If the brief recommends a format or platform NOT in this list (e.g. thread, carousel, Instagram), IGNORE the brief's format/platform and write a narrative long-post / blog essay instead. This overrides the brief.
+- Process only ONE topic per run.
+- NO web searches — all material comes from the existing dossier and brief.
+- Only draft topics that have a completed post brief.
+- Do not modify existing cards, dossiers, briefs, or index entries.
+- If the brief or dossier file doesn't exist, skip and report.
+- If a file write fails twice, stop and report. Do not retry-loop.
+- Follow the voice rules and format-specific guidance in `REFERENCE/post-draft-rubric.md`.
